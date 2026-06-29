@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo 5 Juegos - Conexión Real</title>
+    <title>OLIMPIADAS JEDC</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: 15px auto; }
@@ -20,7 +20,7 @@
         .code-box { font-size: 28px; font-weight: bold; color: #4f46e5; background: #e0e7ff; padding: 10px; border-radius: 6px; display: inline-block; margin: 10px 0; letter-spacing: 2px; }
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
     </style>
-    <!-- Librería MQTT ultra-estable de internet en tiempo real -->
+    <!-- Servidor CDN estable para MQTT móvil -->
     <script src="https://cloudflare.com" type="text/javascript"></script>
 </head>
 <body>
@@ -99,45 +99,46 @@
         let matrizPuntos = {};
         let salaId = "";
         let miJuegoAsignado = "";
-        let clienteMqtt;
+        let clienteMqtt = null;
 
         // Inicializar estructura limpia
         equipos.forEach(eq => { matrizPuntos[eq] = {}; juegos.forEach(ju => matrizPuntos[eq][ju] = 0); });
 
-        // Eventos de los botones
-        document.getElementById('btn-crear-base').addEventListener('click', iniciarBase);
-        document.getElementById('btn-crear-control').addEventListener('click', iniciarControl);
-        document.getElementById('btn-enviar-puntos').addEventListener('click', enviarPuntosManual);
-        document.getElementById('btn-base-actualizar').addEventListener('click', actualizarPuntosDesdeBase);
-        document.getElementById('btn-reiniciar').addEventListener('click', reiniciarTodo);
+        // Enlace inmediato de los botones para que nunca se congelen
+        document.getElementById('btn-crear-base').onclick = iniciarBase;
+        document.getElementById('btn-crear-control').onclick = iniciarControl;
+        document.getElementById('btn-enviar-puntos').onclick = enviarPuntosManual;
+        document.getElementById('btn-base-actualizar').onclick = actualizarPuntosDesdeBase;
+        document.getElementById('btn-reiniciar').onclick = reiniciarTodo;
 
         function conectarMqtt(idParaConectar, esBase) {
-            // Servidor global público y gratuito de HiveMQ
+            if (typeof Paho === "undefined") return; // Evita cierres si no hay red
+
             clienteMqtt = new Paho.MQTT.Client("://hivemq.com", Number(8000), "client_" + Math.random().toString(36).substring(5));
             
             clienteMqtt.onMessageArrived = function(message) {
-                const evento = JSON.parse(message.payloadString);
-                
-                if (evento.tipo === 'modificar') {
-                    matrizPuntos[evento.equipo][evento.juego] = evento.valor;
-                    dibujarTabla();
-                    if (esBase) {
-                        // Si la base recibe cambio, le avisa de vuelta a los controles para que se sincronicen
-                        enviarMensajeMqtt({ tipo: 'sincronizar', datos: matrizPuntos });
+                try {
+                    const evento = JSON.parse(message.payloadString);
+                    if (evento.tipo === 'modificar') {
+                        matrizPuntos[evento.equipo][evento.juego] = evento.valor;
+                        dibujarTabla();
+                        if (esBase) {
+                            enviarMensajeMqtt({ tipo: 'sincronizar', datos: matrizPuntos });
+                        }
+                    } else if (evento.tipo === 'sincronizar') {
+                        matrizPuntos = evento.datos;
+                        dibujarTabla();
                     }
-                } else if (evento.tipo === 'sincronizar') {
-                    matrizPuntos = evento.datos;
-                }
+                } catch(e) {}
             };
 
             clienteMqtt.connect({
                 onSuccess: function() {
                     clienteMqtt.subscribe("torneojuegos/" + idParaConectar);
-                    if (esBase) {
-                        enviarMensajeMqtt({ tipo: 'sincronizar', datos: matrizPuntos });
-                    }
+                    if (esBase) enviarMensajeMqtt({ tipo: 'sincronizar', datos: matrizPuntos });
                 },
-                useSSL: false
+                useSSL: false,
+                timeout: 3
             });
         }
 
@@ -150,6 +151,7 @@
         }
 
         function iniciarBase() {
+            // El cambio de pantalla ocurre instantáneamente sin esperar respuesta de internet
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
 
@@ -158,7 +160,6 @@
 
             dibujarTabla();
 
-            // Rellenar select de la base
             const selectBaseEq = document.getElementById('select-base-equipo');
             selectBaseEq.innerHTML = '';
             equipos.forEach(eq => selectBaseEq.innerHTML += `<option value="${eq}">${eq}</option>`);
