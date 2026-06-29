@@ -1,24 +1,202 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Torneo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torneo 5 Juegos - Ingreso Manual</title>
+    <style>
+        body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: 15px auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 14px; }
+        th, td { border: 1px solid #e5e7eb; padding: 10px; text-align: center; }
+        th { background-color: #4f46e5; color: white; }
+        tr:nth-child(even) { background-color: #f9fafb; }
+        .total-col { font-weight: bold; color: #10b981; background-color: #f0fdf4; }
+        button { font-size: 16px; padding: 12px 20px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-menu { background-color: #4f46e5; color: white; width: 90%; margin: 10px 0; }
+        .btn-send { background-color: #10b981; color: white; width: 85%; margin-top: 10px; }
+        .hidden { display: none !important; }
+        select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; }
+        .code-box { font-size: 24px; font-weight: bold; color: #4f46e5; background: #e0e7ff; padding: 10px; border-radius: 6px; display: inline-block; margin: 10px 0; }
+    </style>
 </head>
 <body>
-    <h2>Torneo 5 Juegos</h2>
-    <button onclick="document.getElementById('base').style.display='block';">Base</button>
-    <button onclick="document.getElementById('control').style.display='block';">Control</button>
-    
-    <div id="base" style="display:none; border:1px solid black; margin:10px; padding:10px;">
-        <h3>Tabla Base</h3>
-        <p>Juego 1: <span id="j1">0</span></p>
-        <p>Juego 2: <span id="j2">0</span></p>
+
+    <!-- PANTALLA 1: INICIO -->
+    <div id="view-inicio" class="card">
+        <h2>Torneo 5 Juegos</h2>
+        <p>Elige el rol de este celular:</p>
+        <button class="btn-menu" onclick="iniciarBase()">🖥️ Celular Base (Ver Tabla General)</button>
+        <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+        <input type="text" id="input-codigo" placeholder="Código de la Base">
+        <select id="select-juego-asignado">
+            <option value="Juego 1">Controlar: Juego 1</option>
+            <option value="Juego 2">Controlar: Juego 2</option>
+            <option value="Juego 3">Controlar: Juego 3</option>
+            <option value="Juego 4">Controlar: Juego 4</option>
+            <option value="Juego 5">Controlar: Juego 5</option>
+        </select>
+        <button class="btn-menu" style="background-color: #10b981;" onclick="iniciarControl()">Aceptar e Ingresar como Estación</button>
     </div>
 
-    <div id="control" style="display:none; border:1px solid red; margin:10px; padding:10px;">
-        <h3>Control Remoto</h3>
-        <button onclick="document.getElementById('j1').innerText=parseInt(document.getElementById('j1').innerText)+1;">+1 Juego 1</button>
-        <button onclick="document.getElementById('j2').innerText=parseInt(document.getElementById('j2').innerText)+1;">+1 Juego 2</button>
+    <!-- PANTALLA 2: CELULAR BASE (TABLA GENERAL) -->
+    <div id="view-base" class="card hidden" style="max-width: 100%;">
+        <h3>Código de Vinculación: <span id="txt-codigo-base" class="code-box">...</span></h3>
+        <h2>Tabla General de Posiciones</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Equipo</th>
+                        <th>Juego 1</th>
+                        <th>Juego 2</th>
+                        <th>Juego 3</th>
+                        <th>Juego 4</th>
+                        <th>Juego 5</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-cuerpo"></tbody>
+            </table>
+        </div>
+        <br>
+        <button onclick="reiniciarTodo()" style="background:#6b7280; color:white;">🔄 Reiniciar Todo a 0</button>
     </div>
+
+    <!-- PANTALLA 3: CONTROLADORES DE JUEGO (INGRESO POR TECLADO) -->
+    <div id="view-control" class="card hidden">
+        <h2 id="titulo-juego-control">Estación de Juego</h2>
+        
+        <label>1. Selecciona el Equipo:</label>
+        <select id="select-equipo-control" onchange="obtenerPuntajeActual()"></select>
+        
+        <label style="display:block; margin-top:15px;">2. Escribe los puntos (Rango 1 a 100):</label>
+        <input type="number" id="input-puntos-manual" min="1" max="100" placeholder="Ej: 85">
+        
+        <button class="btn-send" onclick="enviarPuntosManual()">Actualizar Puntuación 📤</button>
+        
+        <div style="margin-top: 20px; font-size: 13px; color: #6b7280;">
+            Puntos guardados actualmente: <strong id="score-actual-guardado" style="color:#4f46e5;">0</strong>
+        </div>
+    </div>
+
+    <!-- Carga de servidor de red directo y seguro -->
+    <script src="https://unpkg.com"></script>
+    <script>
+        // CONFIGURACIÓN DE EQUIPOS
+        const equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
+        const juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
+        
+        let matrizPuntos = {};
+        equipos.forEach(eq => {
+            matrizPuntos[eq] = {};
+            juegos.forEach(ju => matrizPuntos[eq][ju] = 0);
+        });
+
+        let peer, conn;
+        let conexionesControles = [];
+        let miJuegoAsignado = "";
+
+        // LÓGICA BASE CENTRAL
+        function iniciarBase() {
+            document.getElementById('view-inicio').classList.add('hidden');
+            document.getElementById('view-base').classList.remove('hidden');
+            dibujarTabla();
+
+            const idAleatorio = Math.random().toString(36).substring(2, 6).toUpperCase();
+            peer = new Peer(idAleatorio, { host: '://peerjs.com', port: 443, secure: true });
+
+            peer.on('open', id => document.getElementById('txt-codigo-base').innerText = id);
+            peer.on('connection', c => {
+                conexionesControles.push(c);
+                c.on('open', () => c.send({ tipo: 'actualizar', datos: matrizPuntos }));
+                c.on('data', data => {
+                    if (data.tipo === 'modificar') {
+                        matrizPuntos[data.equipo][data.juego] = data.valor;
+                        dibujarTabla();
+                        notificarATodos();
+                    }
+                });
+            });
+        }
+
+        function dibujarTabla() {
+            const cuerpo = document.getElementById('tabla-cuerpo');
+            cuerpo.innerHTML = '';
+            equipos.forEach(eq => {
+                let fila = `<tr><td><strong>${eq}</strong></td>`;
+                let sumaTotal = 0;
+                juegos.forEach(ju => {
+                    const pts = matrizPuntos[eq][ju] || 0;
+                    fila += `<td>${pts}</td>`;
+                    sumaTotal += pts;
+                });
+                fila += `<td class="total-col">${sumaTotal}</td></tr>`;
+                cuerpo.innerHTML += fila;
+            });
+        }
+
+        function reiniciarTodo() {
+            if(!confirm("¿Deseas borrar toda la tabla y empezar de cero?")) return;
+            equipos.forEach(eq => juegos.forEach(ju => matrizPuntos[eq][ju] = 0));
+            dibujarTabla();
+            notificarATodos();
+        }
+
+        function notificarATodos() {
+            conexionesControles.forEach(c => { if(c.open) c.send({ tipo: 'actualizar', datos: matrizPuntos }); });
+        }
+
+        // LÓGICA CONTROLES REMOTOS
+        function iniciarControl() {
+            const codigo = document.getElementById('input-codigo').value.trim().toUpperCase();
+            miJuegoAsignado = document.getElementById('select-juego-asignado').value;
+            if (!codigo) return alert("Por favor, ingresa primero el código que muestra la Base.");
+
+            peer = new Peer({ host: '://peerjs.com', port: 443, secure: true });
+            peer.on('open', () => {
+                conn = peer.connect(codigo);
+                conn.on('open', () => {
+                    document.getElementById('view-inicio').classList.add('hidden');
+                    document.getElementById('view-control').classList.remove('hidden');
+                    document.getElementById('titulo-juego-control').innerText = `Estación activa: ${miJuegoAsignado}`;
+                    
+                    const selectEq = document.getElementById('select-equipo-control');
+                    selectEq.innerHTML = '';
+                    equipos.forEach(eq => selectEq.innerHTML += `<option value="${eq}">${eq}</option>`);
+                    obtenerPuntajeActual();
+                });
+                conn.on('data', data => {
+                    if (data.tipo === 'actualizar') {
+                        matrizPuntos = data.datos;
+                        obtenerPuntajeActual();
+                    }
+                });
+            });
+        }
+
+        function obtenerPuntajeActual() {
+            const eqSel = document.getElementById('select-equipo-control').value;
+            document.getElementById('score-actual-guardado').innerText = matrizPuntos[eqSel][miJuegoAsignado] || 0;
+        }
+
+        function enviarPuntosManual() {
+            const eqSel = document.getElementById('select-equipo-control').value;
+            const inputVal = document.getElementById('input-puntos-manual').value;
+            
+            const puntos = parseInt(inputVal);
+
+            // Validación de rango requerido (1 al 100)
+            if (isNaN(puntos) || puntos < 1 || puntos > 100) {
+                alert("Error: Introduce una puntuación válida que esté entre 1 y 100.");
+                return;
+            }
+
+            // Enviar la nueva puntuación escrita por teclado a la base
+            conn.send({ tipo: 'modificar', juego: miJuegoAsignado, equipo: eqSel, valor: puntos });
+            document.getElementById('input-puntos-manual').value = ''; // Limpiar casilla
+            alert("Puntuación enviada con éxito.");
+        }
+    </script>
 </body>
 </html>
