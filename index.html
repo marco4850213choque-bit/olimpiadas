@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo 5 Juegos - Código Limpio</title>
+    <title>Torneo 5 Juegos - Conexión Directa</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: 15px auto; }
@@ -17,7 +17,6 @@
         .btn-send { background-color: #10b981; color: white; width: 85%; margin-top: 10px; }
         .hidden { display: none !important; }
         select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; }
-        .code-box { font-size: 28px; font-weight: bold; color: #4f46e5; background: #e0e7ff; padding: 10px; border-radius: 6px; display: inline-block; margin: 10px 0; letter-spacing: 2px; }
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
     </style>
 </head>
@@ -26,26 +25,23 @@
     <!-- PANTALLA 1: MENU INICIAL -->
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos</h2>
-        <p>Elige el rol de este celular (Acceso Libre):</p>
+        <p>Selecciona la función de este celular:</p>
         <button class="btn-menu" id="btn-crear-base">🖥️ Celular Base (Ver Tabla)</button>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
         
-        <p><strong>Ingresar a Estaciones:</strong></p>
-        <input type="text" id="input-codigo" maxlength="4" placeholder="Código de la Base (4 números)">
+        <p><strong>Entrar como Estación de Juego:</strong></p>
         <select id="select-juego-asignado">
-            <option value="Juego 1">Controlar: Juego 1</option>
-            <option value="Juego 2">Controlar: Juego 2</option>
-            <option value="Juego 3">Controlar: Juego 3</option>
-            <option value="Juego 4">Controlar: Juego 4</option>
-            <option value="Juego 5">Controlar: Juego 5</option>
+            <option value="Juego 1">Estación: Juego 1</option>
+            <option value="Juego 2">Estación: Juego 2</option>
+            <option value="Juego 3">Estación: Juego 3</option>
+            <option value="Juego 4">Estación: Juego 4</option>
+            <option value="Juego 5">Estación: Juego 5</option>
         </select>
         <button class="btn-menu" style="background-color: #10b981;" id="btn-crear-control">Ingresar como Estación</button>
     </div>
 
     <!-- PANTALLA 2: PANTALLA CENTRAL BASE -->
     <div id="view-base" class="card hidden" style="max-width: 100%;">
-        <h3>Código de Vinculación: <br><span id="txt-codigo-base" class="code-box">Generando...</span></h3>
-        
         <h2>Tabla General de Posiciones</h2>
         <div style="overflow-x: auto;">
             <table>
@@ -92,107 +88,121 @@
     </div>
 
     <script>
-        const equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
-        const juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
-        let matrizPuntos = {};
-        let salaId = "";
-        let miJuegoAsignado = "";
+        var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
+        var juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
+        var matrizPuntos = {};
+        var miJuegoAsignado = "";
+        
+        // Identificador único universal fijo para tu torneo (No cambia)
+        var urlNube = "https://restful-api.dev";
+        var salaFijaName = "torneo_fijo_juegos_global";
 
         // Inicializar estructura limpia
-        equipos.forEach(eq => { matrizPuntos[eq] = {}; juegos.forEach(ju => matrizPuntos[eq][ju] = 0); });
+        for (var i = 0; i < equipos.length; i++) {
+            matrizPuntos[equipos[i]] = {};
+            for (var j = 0; j < juegos.length; j++) {
+                matrizPuntos[equipos[i]][juegos[j]] = 0;
+            }
+        }
 
-        // Enlace de los botones directo y libre de congelamientos
-        document.getElementById('btn-crear-base').onclick = iniciarBase;
-        document.getElementById('btn-crear-control').onclick = iniciarControl;
-        document.getElementById('btn-enviar-puntos').onclick = enviarPuntosManual;
-        document.getElementById('btn-base-actualizar').onclick = actualizarPuntosDesdeBase;
-        document.getElementById('btn-reiniciar').onclick = reiniciarTodo;
+        window.onload = function() {
+            document.getElementById('btn-crear-base').onclick = iniciarBase;
+            document.getElementById('btn-crear-control').onclick = iniciarControl;
+            document.getElementById('btn-enviar-puntos').onclick = enviarPuntosManual;
+            document.getElementById('btn-base-actualizar').onclick = actualizarPuntosDesdeBase;
+            document.getElementById('btn-reiniciar').onclick = reiniciarTodo;
+        };
 
         function iniciarBase() {
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
 
-            // Genera código aleatorio de 4 números
-            salaId = Math.floor(1000 + Math.random() * 9000).toString();
-            document.getElementById('txt-codigo-base').innerText = salaId;
-
-            const selectBaseEq = document.getElementById('select-base-equipo');
+            var selectBaseEq = document.getElementById('select-base-equipo');
             selectBaseEq.innerHTML = '';
-            equipos.forEach(eq => selectBaseEq.innerHTML += `<option value="${eq}">${eq}</option>`);
+            for (var i = 0; i < equipos.length; i++) {
+                selectBaseEq.innerHTML += '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
+            }
 
             dibujarTabla();
-            subirDatosNube();
+            subirAInternet();
 
-            // Revisar la nube de forma automática cada 2 segundos sin congelar la app
-            setInterval(descargarDatosNube, 2000);
+            // Descarga actualizaciones en segundo plano automáticamente cada 2 segundos
+            setInterval(descargarDeInternet, 2000);
         }
 
         function dibujarTabla() {
-            const cuerpo = document.getElementById('tabla-cuerpo');
+            var cuerpo = document.getElementById('tabla-cuerpo');
             cuerpo.innerHTML = '';
-            equipos.forEach(eq => {
-                let fila = `<tr><td><strong>${eq}</strong></td>`;
-                let total = 0;
-                juegos.forEach(ju => {
-                    let pts = (matrizPuntos[eq] && matrizPuntos[eq][ju]) ? matrizPuntos[eq][ju] : 0;
-                    fila += `<td>${pts}</td>`;
+            for (var i = 0; i < equipos.length; i++) {
+                var eq = equipos[i];
+                var fila = '<tr><td><strong>' + eq + '</strong></td>';
+                var total = 0;
+                for (var j = 0; j < juegos.length; j++) {
+                    var ju = juegos[j];
+                    var pts = (matrizPuntos[eq] && matrizPuntos[eq][ju]) ? matrizPuntos[eq][ju] : 0;
+                    fila += '<td>' + pts + '</td>';
                     total += pts;
-                });
-                fila += `<td class="total-col">${total}</td></tr>`;
+                }
+                fila += '<td class="total-col">' + total + '</td></tr>';
                 cuerpo.innerHTML += fila;
-            });
+            }
         }
 
         function iniciarControl() {
-            salaId = document.getElementById('input-codigo').value.trim();
             miJuegoAsignado = document.getElementById('select-juego-asignado').value;
 
-            if (salaId.length !== 4 || isNaN(salaId)) {
-                return alert("Por favor, ingresa un código válido de 4 números.");
-            }
-
-            // Cambiar de pantalla al instante
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-control').classList.remove('hidden');
-            document.getElementById('titulo-juego-control').innerText = "Estación: " + miJuegoAsignado;
+            document.getElementById('titulo-juego-control').innerText = miJuegoAsignado;
 
-            const selectEq = document.getElementById('select-equipo-control');
+            var selectEq = document.getElementById('select-equipo-control');
             selectEq.innerHTML = '';
-            equipos.forEach(eq => selectEq.innerHTML += `<option value="${eq}">${eq}</option>`);
+            for (var i = 0; i < equipos.length; i++) {
+                selectEq.innerHTML += '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
+            }
 
-            descargarDatosNube();
+            descargarDeInternet();
         }
 
-        // Conexiones HTTP Universales a prueba de bloqueos de red
-        function subirDatosNube() {
-            fetch('https://restful-api.dev', {
+        function subirAInternet() {
+            fetch(urlNube, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: "torneo_" + salaId, data: matrizPuntos })
-            }).catch(e => {});
+                body: JSON.stringify({ name: salaFijaName, data: matrizPuntos })
+            }).catch(function(e){});
         }
 
-        function descargarDatosNube() {
-            fetch('https://restful-api.dev').then(res => res.json()).then(data => {
-                const salaEncontrada = data.reverse().find(obj => obj.name === "torneo_" + salaId);
-                if (salaEncontrada && salaEncontrada.data) {
-                    matrizPuntos = salaEncontrada.data;
+        function descargarDeInternet() {
+            fetch(urlNube).then(function(res){ return res.json(); }).then(function(data) {
+                var encontrado = data.reverse().find(function(obj){ return obj.name === salaFijaName; });
+                if (encontrado && encontrado.data) {
+                    matrizPuntos = encontrado.data;
                     dibujarTabla();
                 }
-            }).catch(e => {});
+            }).catch(function(e){});
         }
 
         function enviarPuntosManual() {
-            const eqSel = document.getElementById('select-equipo-control').value;
-            const puntos = parseInt(document.getElementById('input-puntos-manual').value);
+            var eqSel = document.getElementById('select-equipo-control').value;
+            var puntos = parseInt(document.getElementById('input-puntos-manual').value);
 
             if (isNaN(puntos) || puntos < 1 || puntos > 100) {
-                return alert("Error: Introduce una puntuación entre 1 y 100.");
+                alert("Error: Puntuación debe ser entre 1 y 100.");
+                return;
             }
 
-            // Descargar primero para no pisar datos de otras estaciones
-            fetch('https://restful-api.dev').then(res => res.json()).then(data => {
-                const salaEncontrada = data.reverse().find(obj => obj.name === "torneo_" + salaId);
-                if (salaEncontrada && salaEncontrada.data) {
-                    matrizPuntos = salaEncontrada.data;
-                }
+            // Descargar estado, modificar y subir de inmediato
+            fetch(urlNube).then(function(res){ return res.json(); }).then(function(data) {
+                var encontrado = data.reverse().find(function(obj){ return obj.name === salaFijaName; });
+                if (encontrado && encontrado.data) { matrizPuntos = encontrado.data; }
+                
+                matrizPuntos[eqSel][miJuegoAsignado] = puntos;
+                subirAInternet();
+                document.getElementById('input-puntos-manual').value = '';
+                alert("Puntuación enviada con éxito.");
+            });
+        }
+
+        function actualizarPuntosDesdeBase() {
+            var eqSel = document.getElementById('select-base-equipo').value;
+            var juSel = document.getElementById('select-base-juego').value;
