@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo 5 Juegos - Acceso Libre</title>
+    <title>Torneo 5 Juegos - Conexión Real</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: 15px auto; }
@@ -20,13 +20,15 @@
         .code-box { font-size: 28px; font-weight: bold; color: #4f46e5; background: #e0e7ff; padding: 10px; border-radius: 6px; display: inline-block; margin: 10px 0; letter-spacing: 2px; }
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
     </style>
+    <!-- Librería MQTT ultra-estable de internet en tiempo real -->
+    <script src="https://cloudflare.com" type="text/javascript"></script>
 </head>
 <body>
 
     <!-- PANTALLA 1: MENU INICIAL -->
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos</h2>
-        <p>Elige el rol de este celular (Acceso Libre):</p>
+        <p>Elige el rol de este celular:</p>
         <button class="btn-menu" id="btn-crear-base">🖥️ Celular Base (Ver Tabla)</button>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
         
@@ -64,7 +66,6 @@
             </table>
         </div>
 
-        <!-- NUEVA FUNCIÓN: ACTUALIZAR PUNTUACIÓN MANUAL DESDE LA BASE -->
         <div class="admin-box">
             <h4>✏️ Modificar Puntos desde la Base</h4>
             <select id="select-base-equipo"></select>
@@ -98,44 +99,71 @@
         let matrizPuntos = {};
         let salaId = "";
         let miJuegoAsignado = "";
-        let canalComunicacion;
+        let clienteMqtt;
 
-        // Inicializar estructura limpia en memoria local
+        // Inicializar estructura limpia
         equipos.forEach(eq => { matrizPuntos[eq] = {}; juegos.forEach(ju => matrizPuntos[eq][ju] = 0); });
 
-        // Enlace inmediato de los botones sin bloqueos
+        // Eventos de los botones
         document.getElementById('btn-crear-base').addEventListener('click', iniciarBase);
         document.getElementById('btn-crear-control').addEventListener('click', iniciarControl);
         document.getElementById('btn-enviar-puntos').addEventListener('click', enviarPuntosManual);
         document.getElementById('btn-base-actualizar').addEventListener('click', actualizarPuntosDesdeBase);
         document.getElementById('btn-reiniciar').addEventListener('click', reiniciarTodo);
 
+        function conectarMqtt(idParaConectar, esBase) {
+            // Servidor global público y gratuito de HiveMQ
+            clienteMqtt = new Paho.MQTT.Client("://hivemq.com", Number(8000), "client_" + Math.random().toString(36).substring(5));
+            
+            clienteMqtt.onMessageArrived = function(message) {
+                const evento = JSON.parse(message.payloadString);
+                
+                if (evento.tipo === 'modificar') {
+                    matrizPuntos[evento.equipo][evento.juego] = evento.valor;
+                    dibujarTabla();
+                    if (esBase) {
+                        // Si la base recibe cambio, le avisa de vuelta a los controles para que se sincronicen
+                        enviarMensajeMqtt({ tipo: 'sincronizar', datos: matrizPuntos });
+                    }
+                } else if (evento.tipo === 'sincronizar') {
+                    matrizPuntos = evento.datos;
+                }
+            };
+
+            clienteMqtt.connect({
+                onSuccess: function() {
+                    clienteMqtt.subscribe("torneojuegos/" + idParaConectar);
+                    if (esBase) {
+                        enviarMensajeMqtt({ tipo: 'sincronizar', datos: matrizPuntos });
+                    }
+                },
+                useSSL: false
+            });
+        }
+
+        function enviarMensajeMqtt(objeto) {
+            if (clienteMqtt && clienteMqtt.isConnected()) {
+                const message = new Paho.MQTT.Message(JSON.stringify(objeto));
+                message.destinationName = "torneojuegos/" + salaId;
+                clienteMqtt.send(message);
+            }
+        }
+
         function iniciarBase() {
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
 
-            // Genera código aleatorio libre de 4 dígitos para vincular
             salaId = Math.floor(1000 + Math.random() * 9000).toString();
             document.getElementById('txt-codigo-base').innerText = salaId;
 
-            localStorage.setItem('torneo_' + salaId, JSON.stringify(matrizPuntos));
             dibujarTabla();
 
-            // Rellenar select de equipos en la base para la modificación manual
+            // Rellenar select de la base
             const selectBaseEq = document.getElementById('select-base-equipo');
             selectBaseEq.innerHTML = '';
             equipos.forEach(eq => selectBaseEq.innerHTML += `<option value="${eq}">${eq}</option>`);
 
-            // Abrir canal local estable
-            canalComunicacion = new BroadcastChannel('canal_' + salaId);
-            canalComunicacion.onmessage = function(evento) {
-                if (evento.data && evento.data.tipo === 'modificar') {
-                    matrizPuntos[evento.data.equipo][evento.data.juego] = evento.data.valor;
-                    localStorage.setItem('torneo_' + salaId, JSON.stringify(matrizPuntos));
-                    dibujarTabla();
-                    canalComunicacion.postMessage({ tipo: 'sincronizar', datos: matrizPuntos });
-                }
-            };
+            conectarMqtt(salaId, true);
         }
 
         function dibujarTabla() {
@@ -163,31 +191,12 @@
                 return alert("Error: Introduce una puntuación válida entre 1 y 100.");
             }
 
-            // Actualizar la matriz local de la base directamente
             matrizPuntos[eqSel][juSel] = puntos;
-            localStorage.setItem('torneo_' + salaId, JSON.stringify(matrizPuntos));
             dibujarTabla();
-
-            // Notificar a las estaciones que estén conectadas para que tengan el mismo dato
-            if (canalComunicacion) {
-                canalComunicacion.postMessage({ tipo: 'sincronizar', datos: matrizPuntos });
-            }
+            enviarMensajeMqtt({ tipo: 'sincronizar', datos: matrizPuntos });
 
             document.getElementById('input-base-puntos').value = '';
-            alert("¡Marcador actualizado de manera manual en la Base!");
+            alert("¡Marcador actualizado en la Base!");
         }
 
         function iniciarControl() {
-            salaId = document.getElementById('input-codigo').value.trim();
-            miJuegoAsignado = document.getElementById('select-juego-asignado').value;
-
-            if (salaId.length !== 4 || isNaN(salaId)) {
-                return alert("Por favor, ingresa un código válido de 4 números.");
-            }
-
-            const datosExistentes = localStorage.getItem('torneo_' + salaId);
-            if (!datosExistentes) {
-                return alert("El código de 4 dígitos no coincide con ninguna Base activa.");
-            }
-
-            matrizPuntos = JSON.parse(datosExistentes);
