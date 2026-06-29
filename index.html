@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo 5 Juegos - Código 4 Dígitos</title>
+    <title>Torneo 5 Juegos - Versión Estable</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: 15px auto; }
@@ -26,7 +26,7 @@
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos</h2>
         <p>Elige el rol de este celular:</p>
-        <button class="btn-menu" onclick="iniciarBase()">🖥️ Celular Base (Ver Tabla)</button>
+        <button class="btn-menu" id="btn-crear-base">🖥️ Celular Base (Ver Tabla)</button>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
         <input type="text" id="input-codigo" maxlength="4" placeholder="Código de 4 dígitos">
         <select id="select-juego-asignado">
@@ -36,7 +36,7 @@
             <option value="Juego 4">Controlar: Juego 4</option>
             <option value="Juego 5">Controlar: Juego 5</option>
         </select>
-        <button class="btn-menu" style="background-color: #10b981;" onclick="iniciarControl()">Ingresar como Estación</button>
+        <button class="btn-menu" style="background-color: #10b981;" id="btn-crear-control">Ingresar como Estación</button>
     </div>
 
     <!-- PANTALLA 2: PANTALLA CENTRAL BASE -->
@@ -60,7 +60,7 @@
             </table>
         </div>
         <br>
-        <button onclick="reiniciarTodo()" style="background:#6b7280; color:white;">🔄 Reiniciar Todo a 0</button>
+        <button id="btn-reiniciar" style="background:#6b7280; color:white;">🔄 Reiniciar Todo a 0</button>
     </div>
 
     <!-- PANTALLA 3: ESTACIONES DE JUEGO (CONTROLES) -->
@@ -70,18 +70,18 @@
         <select id="select-equipo-control"></select>
         <label style="display:block; margin-top:15px;">2. Puntos (Rango 1 a 100):</label>
         <input type="number" id="input-puntos-manual" min="1" max="100" placeholder="Ej: 85">
-        <button class="btn-send" onclick="enviarPuntosManual()">Actualizar Puntuación 📤</button>
+        <button class="btn-send" id="btn-enviar-puntos">Actualizar Puntuación 📤</button>
     </div>
 
-    <!-- Conexión Gratuita a Base de Datos en Tiempo Real distribuida -->
-    <script type="module">
-        import { initializeApp } from "https://gstatic.com";
-        import { getDatabase, ref, onValue, set, update } from "https://gstatic.com";
+    <!-- Cargamos las librerías de Firebase de forma clásica y estable -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
 
-        // Servidor público optimizado para desarrollo libre
+    <script>
+        // Configuración directa del servidor en la nube sin módulos
         const config = { databaseURL: "https://firebaseio.com" };
-        const app = initializeApp(config);
-        const db = getDatabase(app);
+        firebase.initializeApp(config);
+        const db = firebase.database();
 
         const equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         const juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
@@ -92,28 +92,34 @@
         // Inicializar estructura limpia
         equipos.forEach(eq => { matrizPuntos[eq] = {}; juegos.forEach(ju => matrizPuntos[eq][ju] = 0); });
 
-        window.iniciarBase = function() {
+        // Enlace seguro de eventos a los botones para evitar errores de clicks
+        document.getElementById('btn-crear-base').addEventListener('click', iniciarBase);
+        document.getElementById('btn-crear-control').addEventListener('click', iniciarControl);
+        document.getElementById('btn-enviar-puntos').addEventListener('click', enviarPuntosManual);
+        document.getElementById('btn-reiniciar').addEventListener('click', reiniciarTodo);
+
+        function iniciarBase() {
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
 
-            // Genera código de 4 dígitos numéricos aleatorios (Ej: 4721)
+            // Genera código de 4 dígitos numéricos aleatorios
             salaId = Math.floor(1000 + Math.random() * 9000).toString();
             document.getElementById('txt-codigo-base').innerText = salaId;
 
-            const salaRef = ref(db, 'torneos/' + salaId);
+            const salaRef = db.ref('torneos/' + salaId);
             
             // Subir estructura inicial si no existe
-            set(salaRef, matrizPuntos);
+            salaRef.set(matrizPuntos);
 
             // Escuchar cambios en la nube en tiempo real
-            onValue(salaRef, (snapshot) => {
+            salaRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     matrizPuntos = data;
                     dibujarTabla();
                 }
             });
-        };
+        }
 
         function dibujarTabla() {
             const cuerpo = document.getElementById('tabla-cuerpo');
@@ -131,7 +137,7 @@
             });
         }
 
-        window.iniciarControl = function() {
+        function iniciarControl() {
             salaId = document.getElementById('input-codigo').value.trim();
             miJuegoAsignado = document.getElementById('select-juego-asignado').value;
 
@@ -139,10 +145,10 @@
                 return alert("Por favor, ingresa un código válido de 4 números.");
             }
 
-            const salaRef = ref(db, 'torneos/' + salaId);
+            const salaRef = db.ref('torneos/' + salaId);
 
-            // Verificar si el código de 4 dígitos existe en la nube
-            onValue(salaRef, (snapshot) => {
+            // Verificar si el código existe
+            salaRef.once('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data) {
                     alert("El código de 4 dígitos no coincide con ninguna Base abierta.");
@@ -157,10 +163,10 @@
                 const selectEq = document.getElementById('select-equipo-control');
                 selectEq.innerHTML = '';
                 equipos.forEach(eq => selectEq.innerHTML += `<option value="${eq}">${eq}</option>`);
-            }, { onlyOnce: true });
-        };
+            });
+        }
 
-        window.enviarPuntosManual = function() {
+        function enviarPuntosManual() {
             const eqSel = document.getElementById('select-equipo-control').value;
             const puntos = parseInt(document.getElementById('input-puntos-manual').value);
 
@@ -168,22 +174,21 @@
                 return alert("Error: Introduce una puntuación entre 1 y 100.");
             }
 
-            // Guardar directamente en la ruta exacta de la nube
-            const puntoEspecificoRef = ref(db, `torneos/${salaId}/${eqSel}`);
+            const puntoEspecificoRef = db.ref(`torneos/${salaId}/${eqSel}`);
             let updates = {};
             updates[miJuegoAsignado] = puntos;
 
-            update(puntoEspecificoRef, updates).then(() => {
+            puntoEspecificoRef.update(updates).then(() => {
                 document.getElementById('input-puntos-manual').value = '';
                 alert("Puntuación enviada a la base.");
             });
-        };
+        }
 
-        window.reiniciarTodo = function() {
+        function reiniciarTodo() {
             if (!confirm("¿Deseas reiniciar todos los marcadores a 0?")) return;
             equipos.forEach(eq => juegos.forEach(ju => matrizPuntos[eq][ju] = 0));
-            set(ref(db, 'torneos/' + salaId), matrizPuntos);
-        };
+            db.ref('torneos/' + salaId).set(matrizPuntos);
+        }
     </script>
 </body>
 </html>
