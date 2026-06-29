@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo 5 Juegos - Seguridad Base</title>
+    <title>Torneo 5 Juegos - Acceso Libre</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: 15px auto; }
@@ -18,6 +18,7 @@
         .hidden { display: none !important; }
         select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; }
         .code-box { font-size: 28px; font-weight: bold; color: #4f46e5; background: #e0e7ff; padding: 10px; border-radius: 6px; display: inline-block; margin: 10px 0; letter-spacing: 2px; }
+        .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -25,11 +26,11 @@
     <!-- PANTALLA 1: MENU INICIAL -->
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos</h2>
-        <p>Elige el rol de este celular:</p>
+        <p>Elige el rol de este celular (Acceso Libre):</p>
         <button class="btn-menu" id="btn-crear-base">🖥️ Celular Base (Ver Tabla)</button>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
         
-        <p><strong>Acceso Libre a Estaciones:</strong></p>
+        <p><strong>Ingresar a Estaciones:</strong></p>
         <input type="text" id="input-codigo" maxlength="4" placeholder="Código de la Base (4 números)">
         <select id="select-juego-asignado">
             <option value="Juego 1">Controlar: Juego 1</option>
@@ -43,7 +44,8 @@
 
     <!-- PANTALLA 2: PANTALLA CENTRAL BASE -->
     <div id="view-base" class="card hidden" style="max-width: 100%;">
-        <h3>Código de Vinculación: <br><span id="txt-codigo-base" class="code-box">0000</span></h3>
+        <h3>Código de Vinculación: <br><span id="txt-codigo-base" class="code-box">Generando...</span></h3>
+        
         <h2>Tabla General de Posiciones</h2>
         <div style="overflow-x: auto;">
             <table>
@@ -61,6 +63,21 @@
                 <tbody id="tabla-cuerpo"></tbody>
             </table>
         </div>
+
+        <!-- NUEVA FUNCIÓN: ACTUALIZAR PUNTUACIÓN MANUAL DESDE LA BASE -->
+        <div class="admin-box">
+            <h4>✏️ Modificar Puntos desde la Base</h4>
+            <select id="select-base-equipo"></select>
+            <select id="select-base-juego">
+                <option value="Juego 1">Juego 1</option>
+                <option value="Juego 2">Juego 2</option>
+                <option value="Juego 3">Juego 3</option>
+                <option value="Juego 4">Juego 4</option>
+                <option value="Juego 5">Juego 5</option>
+            </select>
+            <input type="number" id="input-base-puntos" min="1" max="100" placeholder="Puntos (1 a 100)">
+            <button class="btn-send" style="background-color: #d97706; width: 90%;" id="btn-base-actualizar">Actualizar Puntuación Manual 📤</button>
+        </div>
         <br>
         <button id="btn-reiniciar" style="background:#6b7280; color:white;">🔄 Reiniciar Todo a 0</button>
     </div>
@@ -75,61 +92,50 @@
         <button class="btn-send" id="btn-enviar-puntos">Actualizar Puntuación 📤</button>
     </div>
 
-    <!-- Librerías de Firebase estables -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-
     <script>
-        // Servidor en la nube público
-        const config = { databaseURL: "https://firebaseio.com" };
-        firebase.initializeApp(config);
-        const db = firebase.database();
-
         const equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         const juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
         let matrizPuntos = {};
         let salaId = "";
         let miJuegoAsignado = "";
+        let canalComunicacion;
 
-        // Inicializar estructura limpia
+        // Inicializar estructura limpia en memoria local
         equipos.forEach(eq => { matrizPuntos[eq] = {}; juegos.forEach(ju => matrizPuntos[eq][ju] = 0); });
 
-        // Eventos de los botones
-        document.getElementById('btn-crear-base').addEventListener('click', verificarSeguridadBase);
+        // Enlace inmediato de los botones sin bloqueos
+        document.getElementById('btn-crear-base').addEventListener('click', iniciarBase);
         document.getElementById('btn-crear-control').addEventListener('click', iniciarControl);
         document.getElementById('btn-enviar-puntos').addEventListener('click', enviarPuntosManual);
+        document.getElementById('btn-base-actualizar').addEventListener('click', actualizarPuntosDesdeBase);
         document.getElementById('btn-reiniciar').addEventListener('click', reiniciarTodo);
-
-        function verificarSeguridadBase() {
-            // Solicita la contraseña para entrar al modo base
-            const password = prompt("Introduce el código de seguridad para activar la Base:");
-            
-            if (password === "1234") {
-                iniciarBase();
-            } else {
-                alert("Código incorrecto. No tienes acceso al Celular Base.");
-            }
-        }
 
         function iniciarBase() {
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
 
-            // Genera código aleatorio de 4 dígitos para las estaciones
+            // Genera código aleatorio libre de 4 dígitos para vincular
             salaId = Math.floor(1000 + Math.random() * 9000).toString();
             document.getElementById('txt-codigo-base').innerText = salaId;
 
-            const salaRef = db.ref('torneos/' + salaId);
-            salaRef.set(matrizPuntos);
+            localStorage.setItem('torneo_' + salaId, JSON.stringify(matrizPuntos));
+            dibujarTabla();
 
-            // Escuchar cambios en tiempo real
-            salaRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    matrizPuntos = data;
+            // Rellenar select de equipos en la base para la modificación manual
+            const selectBaseEq = document.getElementById('select-base-equipo');
+            selectBaseEq.innerHTML = '';
+            equipos.forEach(eq => selectBaseEq.innerHTML += `<option value="${eq}">${eq}</option>`);
+
+            // Abrir canal local estable
+            canalComunicacion = new BroadcastChannel('canal_' + salaId);
+            canalComunicacion.onmessage = function(evento) {
+                if (evento.data && evento.data.tipo === 'modificar') {
+                    matrizPuntos[evento.data.equipo][evento.data.juego] = evento.data.valor;
+                    localStorage.setItem('torneo_' + salaId, JSON.stringify(matrizPuntos));
                     dibujarTabla();
+                    canalComunicacion.postMessage({ tipo: 'sincronizar', datos: matrizPuntos });
                 }
-            });
+            };
         }
 
         function dibujarTabla() {
@@ -148,6 +154,29 @@
             });
         }
 
+        function actualizarPuntosDesdeBase() {
+            const eqSel = document.getElementById('select-base-equipo').value;
+            const juSel = document.getElementById('select-base-juego').value;
+            const puntos = parseInt(document.getElementById('input-base-puntos').value);
+
+            if (isNaN(puntos) || puntos < 1 || puntos > 100) {
+                return alert("Error: Introduce una puntuación válida entre 1 y 100.");
+            }
+
+            // Actualizar la matriz local de la base directamente
+            matrizPuntos[eqSel][juSel] = puntos;
+            localStorage.setItem('torneo_' + salaId, JSON.stringify(matrizPuntos));
+            dibujarTabla();
+
+            // Notificar a las estaciones que estén conectadas para que tengan el mismo dato
+            if (canalComunicacion) {
+                canalComunicacion.postMessage({ tipo: 'sincronizar', datos: matrizPuntos });
+            }
+
+            document.getElementById('input-base-puntos').value = '';
+            alert("¡Marcador actualizado de manera manual en la Base!");
+        }
+
         function iniciarControl() {
             salaId = document.getElementById('input-codigo').value.trim();
             miJuegoAsignado = document.getElementById('select-juego-asignado').value;
@@ -156,50 +185,9 @@
                 return alert("Por favor, ingresa un código válido de 4 números.");
             }
 
-            const salaRef = db.ref('torneos/' + salaId);
-
-            // Acceso directo a las estaciones validando el código de vinculación
-            salaRef.once('value', (snapshot) => {
-                const data = snapshot.val();
-                if (!data) {
-                    alert("El código de 4 dígitos no coincide con ninguna Base abierta.");
-                    return;
-                }
-                
-                matrizPuntos = data;
-                document.getElementById('view-inicio').classList.add('hidden');
-                document.getElementById('view-control').classList.remove('hidden');
-                document.getElementById('titulo-juego-control').innerText = "Estación: " + miJuegoAsignado;
-
-                const selectEq = document.getElementById('select-equipo-control');
-                selectEq.innerHTML = '';
-                equipos.forEach(eq => selectEq.innerHTML += `<option value="${eq}">${eq}</option>`);
-            });
-        }
-
-        function enviarPuntosManual() {
-            const eqSel = document.getElementById('select-equipo-control').value;
-            const puntos = parseInt(document.getElementById('input-puntos-manual').value);
-
-            if (isNaN(puntos) || puntos < 1 || puntos > 100) {
-                return alert("Error: Introduce una puntuación entre 1 y 100.");
+            const datosExistentes = localStorage.getItem('torneo_' + salaId);
+            if (!datosExistentes) {
+                return alert("El código de 4 dígitos no coincide con ninguna Base activa.");
             }
 
-            const puntoEspecificoRef = db.ref(`torneos/${salaId}/${eqSel}`);
-            let updates = {};
-            updates[miJuegoAsignado] = puntos;
-
-            puntoEspecificoRef.update(updates).then(() => {
-                document.getElementById('input-puntos-manual').value = '';
-                alert("Puntuación enviada a la base.");
-            });
-        }
-
-        function reiniciarTodo() {
-            if (!confirm("¿Deseas reiniciar todos los marcadores a 0?")) return;
-            equipos.forEach(eq => juegos.forEach(ju => matrizPuntos[eq][ju] = 0));
-            db.ref('torneos/' + salaId).set(matrizPuntos);
-        }
-    </script>
-</body>
-</html>
+            matrizPuntos = JSON.parse(datosExistentes);
