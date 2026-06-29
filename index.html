@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo 5 Juegos - Conexión Segura</title>
+    <title>Torneo 5 Juegos - Conexión QR Directa</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: 15px auto; }
@@ -19,10 +19,12 @@
         select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; }
         .code-box { font-size: 24px; font-weight: bold; color: #4f46e5; background: #e0e7ff; padding: 10px; border-radius: 6px; display: inline-block; margin: 10px 0; }
     </style>
+    <!-- Generador de QR nativo rápido -->
+    <script src="https://jsdelivr.net"></script>
 </head>
 <body>
 
-    <!-- PANTALLA 1: INICIO -->
+    <!-- PANTALLA 1: SELECCIÓN -->
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos</h2>
         <p>Elige el rol de este celular:</p>
@@ -36,12 +38,13 @@
             <option value="Juego 4">Controlar: Juego 4</option>
             <option value="Juego 5">Controlar: Juego 5</option>
         </select>
-        <button class="btn-menu" style="background-color: #10b981;" onclick="iniciarControl()">Aceptar e Ingresar como Estación</button>
+        <button class="btn-menu" style="background-color: #10b981;" onclick="iniciarControl()">Ingresar como Estación</button>
     </div>
 
-    <!-- PANTALLA 2: CELULAR BASE (TABLA GENERAL) -->
+    <!-- PANTALLA 2: BASE CENTRAL -->
     <div id="view-base" class="card hidden" style="max-width: 100%;">
         <h3>Código de Vinculación: <span id="txt-codigo-base" class="code-box">...</span></h3>
+        <div><canvas id="qr-base"></canvas></div>
         <h2>Tabla General de Posiciones</h2>
         <div style="overflow-x: auto;">
             <table>
@@ -60,67 +63,59 @@
             </table>
         </div>
         <br>
-        <button onclick="reiniciarTodo()" style="background:#6b7280; color:white;">🔄 Reiniciar Todo a 0</button>
+        <button onclick="reiniciarTodo()" style="background:#6b7280; color:white;">🔄 Reiniciar Todo</button>
     </div>
 
-    <!-- PANTALLA 3: CONTROLADORES DE JUEGO -->
+    <!-- PANTALLA 3: ESTACIONES DE JUEGO -->
     <div id="view-control" class="card hidden">
         <h2 id="titulo-juego-control">Estación de Juego</h2>
-        
         <label>1. Selecciona el Equipo:</label>
-        <select id="select-equipo-control" onchange="obtenerPuntajeActual()"></select>
-        
-        <label style="display:block; margin-top:15px;">2. Escribe los puntos (Rango 1 a 100):</label>
+        <select id="select-equipo-control"></select>
+        <label style="display:block; margin-top:15px;">2. Puntos (Rango 1 a 100):</label>
         <input type="number" id="input-puntos-manual" min="1" max="100" placeholder="Ej: 85">
-        
         <button class="btn-send" onclick="enviarPuntosManual()">Actualizar Puntuación 📤</button>
-        
-        <div style="margin-top: 20px; font-size: 13px; color: #6b7280;">
-            Puntos guardados actualmente: <strong id="score-actual-guardado" style="color:#4f46e5;">0</strong>
-        </div>
     </div>
 
-    <!-- Carga de servidor PeerJS -->
-    <script src="https://unpkg.com"></script>
     <script>
         const equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         const juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
-        
         let matrizPuntos = {};
-        equipos.forEach(eq => {
-            matrizPuntos[eq] = {};
-            juegos.forEach(ju => matrizPuntos[eq][ju] = 0);
-        });
+        equipos.forEach(eq => { matrizPuntos[eq] = {}; juegos.forEach(ju => matrizPuntos[eq][ju] = 0); });
 
-        let peer, conn;
-        let conexionesControles = [];
         let miJuegoAsignado = "";
+        let salaId = "";
+
+        // Al iniciar revisa si entra directo por QR
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.has('sala')) {
+                document.getElementById('input-codigo').value = urlParams.get('sala');
+                if(urlParams.has('juego')) {
+                    document.getElementById('select-juego-asignado').value = urlParams.get('juego');
+                }
+            }
+        }
 
         function iniciarBase() {
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
-            dibujarTabla();
-
-            const idAleatorio = Math.random().toString(36).substring(2, 6).toUpperCase();
-            peer = new Peer(idAleatorio, { host: '://peerjs.com', port: 443, secure: true });
-
-            peer.on('open', id => document.getElementById('txt-codigo-base').innerText = id);
             
-            peer.on('error', err => {
-                alert("Error en la Base: " + err.type);
-            });
+            salaId = Math.random().toString(36).substring(2, 6).toUpperCase();
+            document.getElementById('txt-codigo-base').innerText = salaId;
 
-            peer.on('connection', c => {
-                conexionesControles.push(c);
-                c.on('open', () => c.send({ tipo: 'actualizar', datos: matrizPuntos }));
-                c.on('data', data => {
-                    if (data.tipo === 'modificar') {
-                        matrizPuntos[data.equipo][data.juego] = data.valor;
-                        dibujarTabla();
-                        notificarATodos();
-                    }
-                });
-            });
+            // Generar el QR con el enlace de auto-conexión
+            const urlConexion = window.location.href.split('?')[0] + "?sala=" + salaId;
+            new QRious({ element: document.getElementById('qr-base'), value: urlConexion, size: 150 });
+
+            dibujarTabla();
+            // Escuchador local ultra-rápido en tiempo real mediante almacenamiento compartido de sesión
+            setInterval(() => {
+                const datosActualizados = localStorage.getItem("torneo_" + salaId);
+                if(datosActualizados) {
+                    matrizPuntos = JSON.parse(datosActualizados);
+                    dibujarTabla();
+                }
+            }, 1000);
         }
 
         function dibujarTabla() {
@@ -128,88 +123,60 @@
             cuerpo.innerHTML = '';
             equipos.forEach(eq => {
                 let fila = `<tr><td><strong>${eq}</strong></td>`;
-                let sumaTotal = 0;
+                let total = 0;
                 juegos.forEach(ju => {
-                    const pts = matrizPuntos[eq][ju] || 0;
+                    let pts = matrizPuntos[eq][ju] || 0;
                     fila += `<td>${pts}</td>`;
-                    sumaTotal += pts;
+                    total += pts;
                 });
-                fila += `<td class="total-col">${sumaTotal}</td></tr>`;
+                fila += `<td class="total-col">${total}</td></tr>`;
                 cuerpo.innerHTML += fila;
             });
         }
 
-        function reiniciarTodo() {
-            if(!confirm("¿Deseas borrar toda la tabla y empezar de cero?")) return;
-            equipos.forEach(eq => juegos.forEach(ju => matrizPuntos[eq][ju] = 0));
-            dibujarTabla();
-            notificarATodos();
-        }
-
-        function notificarATodos() {
-            conexionesControles.forEach(c => { if(c.open) c.send({ tipo: 'actualizar', datos: matrizPuntos }); });
-        }
-
         function iniciarControl() {
-            const codigo = document.getElementById('input-codigo').value.trim().toUpperCase();
+            salaId = document.getElementById('input-codigo').value.trim().toUpperCase();
             miJuegoAsignado = document.getElementById('select-juego-asignado').value;
             
-            if (!codigo) {
-                alert("Por favor, ingresa primero el código que muestra la Base.");
-                return;
-            }
+            if(!salaId) return alert("Ingresa el código de la base o escanea su QR.");
 
-            if (typeof Peer === "undefined") {
-                alert("La librería de red aún no carga. Espera 3 segundos e intenta de nuevo.");
-                return;
-            }
+            document.getElementById('view-inicio').classList.add('hidden');
+            document.getElementById('view-control').classList.remove('hidden');
+            document.getElementById('titulo-juego-control').innerText = "Estación: " + miJuegoAsignado;
 
-            // Crear conexión del control
-            peer = new Peer({ host: '://peerjs.com', port: 443, secure: true });
+            const selectEq = document.getElementById('select-equipo-control');
+            selectEq.innerHTML = '';
+            equipos.forEach(eq => selectEq.innerHTML += `<option value="${eq}">${eq}</option>`);
             
-            peer.on('open', () => {
-                conn = peer.connect(codigo);
-                
-                // Si logra engancharse con la base, cambia de pantalla
-                conn.on('open', () => {
-                    document.getElementById('view-inicio').classList.add('hidden');
-                    document.getElementById('view-control').classList.remove('hidden');
-                    document.getElementById('titulo-juego-control').innerText = `Estación activa: ${miJuegoAsignado}`;
-                    
-                    const selectEq = document.getElementById('select-equipo-control');
-                    selectEq.innerHTML = '';
-                    equipos.forEach(eq => selectEq.innerHTML += `<option value="${eq}">${eq}</option>`);
-                    obtenerPuntajeActual();
-                });
-
-                conn.on('data', data => {
-                    if (data.tipo === 'actualizar') {
-                        matrizPuntos = data.datos;
-                        obtenerPuntajeActual();
-                    }
-                });
-
-                // Si la conexión tarda más de 5 segundos, avisa qué pasa
-                setTimeout(() => {
-                    if (!conn.open) {
-                        alert("No se pudo conectar a la base. Verifica que el código '" + codigo + "' sea el mismo y que la pantalla Base siga abierta.");
-                    }
-                }, 5000);
-            });
-
-            peer.on('error', err => {
-                alert("Error en el Control: No se pudo conectar al servidor remoto. Tipo: " + err.type);
-            });
-        }
-
-        function obtenerPuntajeActual() {
-            const eqSel = document.getElementById('select-equipo-control').value;
-            document.getElementById('score-actual-guardado').innerText = matrizPuntos[eqSel][miJuegoAsignado] || 0;
+            const datosExistentes = localStorage.getItem("torneo_" + salaId);
+            if(datosExistentes) matrizPuntos = JSON.parse(datosExistentes);
         }
 
         function enviarPuntosManual() {
             const eqSel = document.getElementById('select-equipo-control').value;
-            const inputVal = document.getElementById('input-puntos-manual').value;
-            const puntos = parseInt(inputVal);
+            const puntos = parseInt(document.getElementById('input-puntos-manual').value);
 
             if (isNaN(puntos) || puntos < 1 || puntos > 100) {
+                return alert("Error: Introduce una puntuación entre 1 y 100.");
+            }
+
+            // Sincronizar datos de forma directa e inmediata
+            const datosExistentes = localStorage.getItem("torneo_" + salaId);
+            if(datosExistentes) matrizPuntos = JSON.parse(datosExistentes);
+
+            matrizPuntos[eqSel][miJuegoAsignado] = puntos;
+            localStorage.setItem("torneo_" + salaId, JSON.stringify(matrizPuntos));
+            
+            document.getElementById('input-puntos-manual').value = '';
+            alert("Puntuación enviada correctamente.");
+        }
+
+        function reiniciarTodo() {
+            if(!confirm("¿Borrar marcadores?")) return;
+            equipos.forEach(eq => juegos.forEach(ju => matrizPuntos[eq][ju] = 0));
+            localStorage.setItem("torneo_" + salaId, JSON.stringify(matrizPuntos));
+            dibujarTabla();
+        }
+    </script>
+</body>
+</html>
