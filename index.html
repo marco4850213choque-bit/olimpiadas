@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo 5 Juegos - Conexión QR Directa</title>
+    <title>Torneo 5 Juegos - Código 4 Dígitos</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: 15px auto; }
@@ -17,20 +17,18 @@
         .btn-send { background-color: #10b981; color: white; width: 85%; margin-top: 10px; }
         .hidden { display: none !important; }
         select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; }
-        .code-box { font-size: 24px; font-weight: bold; color: #4f46e5; background: #e0e7ff; padding: 10px; border-radius: 6px; display: inline-block; margin: 10px 0; }
+        .code-box { font-size: 28px; font-weight: bold; color: #4f46e5; background: #e0e7ff; padding: 10px; border-radius: 6px; display: inline-block; margin: 10px 0; letter-spacing: 2px; }
     </style>
-    <!-- Generador de QR nativo rápido -->
-    <script src="https://jsdelivr.net"></script>
 </head>
 <body>
 
-    <!-- PANTALLA 1: SELECCIÓN -->
+    <!-- PANTALLA 1: MENU INICIAL -->
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos</h2>
         <p>Elige el rol de este celular:</p>
-        <button class="btn-menu" onclick="iniciarBase()">🖥️ Celular Base (Ver Tabla General)</button>
+        <button class="btn-menu" onclick="iniciarBase()">🖥️ Celular Base (Ver Tabla)</button>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <input type="text" id="input-codigo" placeholder="Código de la Base">
+        <input type="text" id="input-codigo" maxlength="4" placeholder="Código de 4 dígitos">
         <select id="select-juego-asignado">
             <option value="Juego 1">Controlar: Juego 1</option>
             <option value="Juego 2">Controlar: Juego 2</option>
@@ -41,10 +39,9 @@
         <button class="btn-menu" style="background-color: #10b981;" onclick="iniciarControl()">Ingresar como Estación</button>
     </div>
 
-    <!-- PANTALLA 2: BASE CENTRAL -->
+    <!-- PANTALLA 2: PANTALLA CENTRAL BASE -->
     <div id="view-base" class="card hidden" style="max-width: 100%;">
-        <h3>Código de Vinculación: <span id="txt-codigo-base" class="code-box">...</span></h3>
-        <div><canvas id="qr-base"></canvas></div>
+        <h3>Código de Vinculación: <br><span id="txt-codigo-base" class="code-box">Generando...</span></h3>
         <h2>Tabla General de Posiciones</h2>
         <div style="overflow-x: auto;">
             <table>
@@ -63,10 +60,10 @@
             </table>
         </div>
         <br>
-        <button onclick="reiniciarTodo()" style="background:#6b7280; color:white;">🔄 Reiniciar Todo</button>
+        <button onclick="reiniciarTodo()" style="background:#6b7280; color:white;">🔄 Reiniciar Todo a 0</button>
     </div>
 
-    <!-- PANTALLA 3: ESTACIONES DE JUEGO -->
+    <!-- PANTALLA 3: ESTACIONES DE JUEGO (CONTROLES) -->
     <div id="view-control" class="card hidden">
         <h2 id="titulo-juego-control">Estación de Juego</h2>
         <label>1. Selecciona el Equipo:</label>
@@ -76,47 +73,47 @@
         <button class="btn-send" onclick="enviarPuntosManual()">Actualizar Puntuación 📤</button>
     </div>
 
-    <script>
+    <!-- Conexión Gratuita a Base de Datos en Tiempo Real distribuida -->
+    <script type="module">
+        import { initializeApp } from "https://gstatic.com";
+        import { getDatabase, ref, onValue, set, update } from "https://gstatic.com";
+
+        // Servidor público optimizado para desarrollo libre
+        const config = { databaseURL: "https://firebaseio.com" };
+        const app = initializeApp(config);
+        const db = getDatabase(app);
+
         const equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         const juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
         let matrizPuntos = {};
+        let salaId = "";
+        let miJuegoAsignado = "";
+
+        // Inicializar estructura limpia
         equipos.forEach(eq => { matrizPuntos[eq] = {}; juegos.forEach(ju => matrizPuntos[eq][ju] = 0); });
 
-        let miJuegoAsignado = "";
-        let salaId = "";
-
-        // Al iniciar revisa si entra directo por QR
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if(urlParams.has('sala')) {
-                document.getElementById('input-codigo').value = urlParams.get('sala');
-                if(urlParams.has('juego')) {
-                    document.getElementById('select-juego-asignado').value = urlParams.get('juego');
-                }
-            }
-        }
-
-        function iniciarBase() {
+        window.iniciarBase = function() {
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
-            
-            salaId = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+            // Genera código de 4 dígitos numéricos aleatorios (Ej: 4721)
+            salaId = Math.floor(1000 + Math.random() * 9000).toString();
             document.getElementById('txt-codigo-base').innerText = salaId;
 
-            // Generar el QR con el enlace de auto-conexión
-            const urlConexion = window.location.href.split('?')[0] + "?sala=" + salaId;
-            new QRious({ element: document.getElementById('qr-base'), value: urlConexion, size: 150 });
+            const salaRef = ref(db, 'torneos/' + salaId);
+            
+            // Subir estructura inicial si no existe
+            set(salaRef, matrizPuntos);
 
-            dibujarTabla();
-            // Escuchador local ultra-rápido en tiempo real mediante almacenamiento compartido de sesión
-            setInterval(() => {
-                const datosActualizados = localStorage.getItem("torneo_" + salaId);
-                if(datosActualizados) {
-                    matrizPuntos = JSON.parse(datosActualizados);
+            // Escuchar cambios en la nube en tiempo real
+            onValue(salaRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    matrizPuntos = data;
                     dibujarTabla();
                 }
-            }, 1000);
-        }
+            });
+        };
 
         function dibujarTabla() {
             const cuerpo = document.getElementById('tabla-cuerpo');
@@ -125,7 +122,7 @@
                 let fila = `<tr><td><strong>${eq}</strong></td>`;
                 let total = 0;
                 juegos.forEach(ju => {
-                    let pts = matrizPuntos[eq][ju] || 0;
+                    let pts = (matrizPuntos[eq] && matrizPuntos[eq][ju]) ? matrizPuntos[eq][ju] : 0;
                     fila += `<td>${pts}</td>`;
                     total += pts;
                 });
@@ -134,25 +131,36 @@
             });
         }
 
-        function iniciarControl() {
-            salaId = document.getElementById('input-codigo').value.trim().toUpperCase();
+        window.iniciarControl = function() {
+            salaId = document.getElementById('input-codigo').value.trim();
             miJuegoAsignado = document.getElementById('select-juego-asignado').value;
-            
-            if(!salaId) return alert("Ingresa el código de la base o escanea su QR.");
 
-            document.getElementById('view-inicio').classList.add('hidden');
-            document.getElementById('view-control').classList.remove('hidden');
-            document.getElementById('titulo-juego-control').innerText = "Estación: " + miJuegoAsignado;
+            if (salaId.length !== 4 || isNaN(salaId)) {
+                return alert("Por favor, ingresa un código válido de 4 números.");
+            }
 
-            const selectEq = document.getElementById('select-equipo-control');
-            selectEq.innerHTML = '';
-            equipos.forEach(eq => selectEq.innerHTML += `<option value="${eq}">${eq}</option>`);
-            
-            const datosExistentes = localStorage.getItem("torneo_" + salaId);
-            if(datosExistentes) matrizPuntos = JSON.parse(datosExistentes);
-        }
+            const salaRef = ref(db, 'torneos/' + salaId);
 
-        function enviarPuntosManual() {
+            // Verificar si el código de 4 dígitos existe en la nube
+            onValue(salaRef, (snapshot) => {
+                const data = snapshot.val();
+                if (!data) {
+                    alert("El código de 4 dígitos no coincide con ninguna Base abierta.");
+                    return;
+                }
+                
+                matrizPuntos = data;
+                document.getElementById('view-inicio').classList.add('hidden');
+                document.getElementById('view-control').classList.remove('hidden');
+                document.getElementById('titulo-juego-control').innerText = "Estación: " + miJuegoAsignado;
+
+                const selectEq = document.getElementById('select-equipo-control');
+                selectEq.innerHTML = '';
+                equipos.forEach(eq => selectEq.innerHTML += `<option value="${eq}">${eq}</option>`);
+            }, { onlyOnce: true });
+        };
+
+        window.enviarPuntosManual = function() {
             const eqSel = document.getElementById('select-equipo-control').value;
             const puntos = parseInt(document.getElementById('input-puntos-manual').value);
 
@@ -160,23 +168,22 @@
                 return alert("Error: Introduce una puntuación entre 1 y 100.");
             }
 
-            // Sincronizar datos de forma directa e inmediata
-            const datosExistentes = localStorage.getItem("torneo_" + salaId);
-            if(datosExistentes) matrizPuntos = JSON.parse(datosExistentes);
+            // Guardar directamente en la ruta exacta de la nube
+            const puntoEspecificoRef = ref(db, `torneos/${salaId}/${eqSel}`);
+            let updates = {};
+            updates[miJuegoAsignado] = puntos;
 
-            matrizPuntos[eqSel][miJuegoAsignado] = puntos;
-            localStorage.setItem("torneo_" + salaId, JSON.stringify(matrizPuntos));
-            
-            document.getElementById('input-puntos-manual').value = '';
-            alert("Puntuación enviada correctamente.");
-        }
+            update(puntoEspecificoRef, updates).then(() => {
+                document.getElementById('input-puntos-manual').value = '';
+                alert("Puntuación enviada a la base.");
+            });
+        };
 
-        function reiniciarTodo() {
-            if(!confirm("¿Borrar marcadores?")) return;
+        window.reiniciarTodo = function() {
+            if (!confirm("¿Deseas reiniciar todos los marcadores a 0?")) return;
             equipos.forEach(eq => juegos.forEach(ju => matrizPuntos[eq][ju] = 0));
-            localStorage.setItem("torneo_" + salaId, JSON.stringify(matrizPuntos));
-            dibujarTabla();
-        }
+            set(ref(db, 'torneos/' + salaId), matrizPuntos);
+        };
     </script>
 </body>
 </html>
