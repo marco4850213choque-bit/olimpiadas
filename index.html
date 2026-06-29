@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo - Promedio con Puntualidad</title>
+    <title>Torneo - Centro de Puntaje</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 650px; margin: 15px auto; }
@@ -26,7 +26,8 @@
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos + Puntualidad</h2>
         <p>Selecciona el rol de este dispositivo:</p>
-        <button class="btn-menu" id="btn-crear-base">🖥️ Modo Computadora Base (Ver Tabla)</button>
+        <!-- NOMBRE MODIFICADO A CENTRO DE PUNTAJE -->
+        <button class="btn-menu" id="btn-crear-base">🖥️ Centro de Puntaje (Ver Tabla)</button>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
         <p><strong>Modo Celular Estación:</strong></p>
         <select id="select-juego-asignado">
@@ -39,9 +40,9 @@
         <button class="btn-menu" style="background-color: #10b981;" id="btn-crear-control">Ingresar como Estación ✅</button>
     </div>
 
-    <!-- PANTALLA 2: COMPUTADORA BASE (TABLA GENERAL) -->
+    <!-- PANTALLA 2: COMPUTADORA BASE (CENTRO DE PUNTAJE) -->
     <div id="view-base" class="card hidden" style="max-width: 100%;">
-        <h2>Tabla General de Posiciones (Promedio)</h2>
+        <h2>Centro de Puntaje - Tabla General</h2>
         <div style="overflow-x: auto;">
             <table>
                 <thead>
@@ -88,16 +89,10 @@
         <button class="btn-send" id="btn-enviar-puntos">Actualizar Puntuación 📤</button>
     </div>
 
-    <!-- CARGA DE GOOGLE FIREBASE ESTABLE EN NAVEGADORES MOVILES -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-
     <script>
-        // Servidor en la nube público distribuido para libre desarrollo
-        var config = { databaseURL: "https://firebaseio.com" };
-        firebase.initializeApp(config);
-        var db = firebase.database();
-        var nodoRef = db.ref('torneo_universal_computadora_celulares');
+        // Servidor HTTP público descentralizado (Sin librerías, inmune a bloqueos)
+        var urlNube = "https://restful-api.dev";
+        var idTorneoUnico = "torneo_fijo_computadora_estaciones_2026";
 
         var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         var juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
@@ -112,12 +107,14 @@
             }
         }
 
-        // Activación inmediata de botones para asegurar flujo
-        document.getElementById('btn-crear-base').onclick = iniciarBase;
-        document.getElementById('btn-crear-control').onclick = iniciarControl;
-        document.getElementById('btn-enviar-puntos').onclick = enviarPuntosManual;
-        document.getElementById('btn-base-actualizar').onclick = actualizarPuntosDesdeBase;
-        document.getElementById('btn-reiniciar').onclick = reiniciarTodo;
+        // Enlace inmediato de funciones nativas
+        window.onload = function() {
+            document.getElementById('btn-crear-base').onclick = iniciarBase;
+            document.getElementById('btn-crear-control').onclick = iniciarControl;
+            document.getElementById('btn-enviar-puntos').onclick = enviarPuntosManual;
+            document.getElementById('btn-base-actualizar').onclick = actualizarPuntosDesdeBase;
+            document.getElementById('btn-reiniciar').onclick = reiniciarTodo;
+        };
 
         function iniciarBase() {
             document.getElementById('view-inicio').classList.add('hidden');
@@ -129,14 +126,11 @@
                 selectBaseEq.innerHTML += '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
             }
 
-            // Escuchar cambios globales de internet en la computadora en tiempo real
-            nodoRef.on('value', function(snapshot) {
-                var data = snapshot.val();
-                if (data) {
-                    matrizPuntos = data;
-                }
-                dibujarTabla();
-            });
+            dibujarTabla();
+            subirAInternet();
+
+            // Descarga actualizaciones en segundo plano automáticamente cada 2 segundos sin congelar la app
+            setInterval(descargarDeInternet, 2000);
         }
 
         function dibujarTabla() {
@@ -170,7 +164,7 @@
 
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-control').classList.remove('hidden');
-            document.getElementById('titulo-juego-control').innerText = "Estación: " + miJuegoAsignado;
+            document.getElementById('titulo-juego-control').innerText = miJuegoAsignado;
 
             var selectEq = document.getElementById('select-equipo-control');
             selectEq.innerHTML = '';
@@ -178,11 +172,25 @@
                 selectEq.innerHTML += '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
             }
 
-            // Mantener sincronizado el celular con los últimos puntajes de la nube
-            nodoRef.on('value', function(snapshot) {
-                var data = snapshot.val();
-                if (data) { matrizPuntos = data; }
-            });
+            descargarDeInternet();
+        }
+
+        function subirAInternet() {
+            fetch(urlNube, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: idTorneoUnico, data: matrizPuntos })
+            }).catch(function(e){});
+        }
+
+        function descargarDeInternet() {
+            fetch(urlNube).then(function(res){ return res.json(); }).then(function(data) {
+                var encontrado = data.reverse().find(function(obj){ return obj.name === idTorneoUnico; });
+                if (encontrado && encontrado.data) {
+                    matrizPuntos = encontrado.data;
+                    dibujarTabla();
+                }
+            }).catch(function(e){});
         }
 
         function enviarPuntosManual() {
@@ -194,7 +202,3 @@
                 return;
             }
 
-            // Guardar directamente en la nube de Google
-            var cambio = {};
-            cambio[miJuegoAsignado] = puntos;
-            nodoRef.child(eqSel).update(cambio).then(function() {
