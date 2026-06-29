@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo - Promedios con Puntualidad</title>
+    <title>Torneo - Promedio con Puntualidad</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 650px; margin: 15px auto; }
@@ -18,39 +18,30 @@
         .hidden { display: none !important; }
         select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; }
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
-        .link-box { background: #e0e7ff; color: #3730a3; padding: 10px; border-radius: 6px; font-size: 12px; word-break: break-all; margin: 10px 0; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <!-- PANTALLA 1: MENU INICIAL -->
+    <!-- PANTALLA 1: MENU SELECCION INICIAL -->
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos + Puntualidad</h2>
-        <p>Selecciona la función de este celular:</p>
-        <button class="btn-menu" id="btn-crear-base">🖥️ Celular Base (Ver Tabla)</button>
+        <p>Selecciona el rol de este dispositivo:</p>
+        <button class="btn-menu" id="btn-crear-base">🖥️ Modo Computadora Base (Ver Tabla)</button>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <p id="msg-estacion-espera" style="color:#6b7280; font-size:14px;">Para ingresar como Estación de Juego, abre el enlace generado por tu Celular Base.</p>
-        
-        <!-- Vista oculta que se activa solo si entran desde el enlace de la base -->
-        <div id="box-control-directo" class="hidden">
-            <label>Configurar esta Estación para:</label>
-            <select id="select-juego-asignado">
-                <option value="Juego 1">Juego 1</option>
-                <option value="Juego 2">Juego 2</option>
-                <option value="Juego 3">Juego 3</option>
-                <option value="Juego 4">Juego 4</option>
-                <option value="Juego 5">Juego 5</option>
-            </select>
-            <button class="btn-menu" style="background-color: #10b981;" id="btn-crear-control">Ingresar como Estación ✅</button>
-        </div>
+        <p><strong>Modo Celular Estación:</strong></p>
+        <select id="select-juego-asignado">
+            <option value="Juego 1">Estación: Juego 1</option>
+            <option value="Juego 2">Estación: Juego 2</option>
+            <option value="Juego 3">Estación: Juego 3</option>
+            <option value="Juego 4">Estación: Juego 4</option>
+            <option value="Juego 5">Estación: Juego 5</option>
+        </select>
+        <button class="btn-menu" style="background-color: #10b981;" id="btn-crear-control">Ingresar como Estación ✅</button>
     </div>
 
-    <!-- PANTALLA 2: PANTALLA CENTRAL BASE -->
+    <!-- PANTALLA 2: COMPUTADORA BASE (TABLA GENERAL) -->
     <div id="view-base" class="card hidden" style="max-width: 100%;">
-        <p>🔗 Comparte este enlace exacto con las estaciones de juego:</p>
-        <div id="link-compartir" class="link-box">Generando enlace...</div>
-        
-        <h2>Tabla de Posiciones (Promedio Final)</h2>
+        <h2>Tabla General de Posiciones (Promedio)</h2>
         <div style="overflow-x: auto;">
             <table>
                 <thead>
@@ -62,7 +53,7 @@
                         <th>Juego 4</th>
                         <th>Juego 5</th>
                         <th style="background-color: #d97706;">Puntualidad</th>
-                        <th>Promedio</th>
+                        <th>Promedio Final</th>
                     </tr>
                 </thead>
                 <tbody id="tabla-cuerpo"></tbody>
@@ -87,7 +78,7 @@
         <button id="btn-reiniciar" style="background:#6b7280; color:white;">🔄 Reiniciar Todo a 0</button>
     </div>
 
-    <!-- PANTALLA 3: ESTACIONES DE JUEGO -->
+    <!-- PANTALLA 3: ESTACIONES DE CELULARES -->
     <div id="view-control" class="card hidden">
         <h2 id="titulo-juego-control">Estación de Juego</h2>
         <label>1. Selecciona el Equipo:</label>
@@ -97,15 +88,23 @@
         <button class="btn-send" id="btn-enviar-puntos">Actualizar Puntuación 📤</button>
     </div>
 
+    <!-- CARGA DE GOOGLE FIREBASE ESTABLE EN NAVEGADORES MOVILES -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+
     <script>
+        // Servidor en la nube público distribuido para libre desarrollo
+        var config = { databaseURL: "https://firebaseio.com" };
+        firebase.initializeApp(config);
+        var db = firebase.database();
+        var nodoRef = db.ref('torneo_universal_computadora_celulares');
+
         var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         var juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
         var matrizPuntos = {};
         var miJuegoAsignado = "";
-        var salaId = "";
-        var canalRed = null;
 
-        // Estructura de datos limpia sumando la columna Puntualidad
+        // Inicializar estructura limpia por defecto
         for (var i = 0; i < equipos.length; i++) {
             matrizPuntos[equipos[i]] = { "Puntualidad": 0 };
             for (var j = 0; j < juegos.length; j++) {
@@ -113,32 +112,16 @@
             }
         }
 
-        window.onload = function() {
-            document.getElementById('btn-crear-base').onclick = iniciarBase;
-            document.getElementById('btn-crear-control').onclick = iniciarControl;
-            document.getElementById('btn-enviar-puntos').onclick = enviarPuntosManual;
-            document.getElementById('btn-base-actualizar').onclick = actualizarPuntosDesdeBase;
-            document.getElementById('btn-reiniciar').onclick = reiniciarTodo;
-
-            // Revisa si viene un ID de la base en el enlace
-            var urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('torneoId')) {
-                salaId = urlParams.get('torneoId');
-                document.getElementById('box-control-directo').classList.remove('hidden');
-                document.getElementById('msg-estacion-espera').classList.add('hidden');
-                conectarCanalDeRed();
-            }
-        };
+        // Activación inmediata de botones para asegurar flujo
+        document.getElementById('btn-crear-base').onclick = iniciarBase;
+        document.getElementById('btn-crear-control').onclick = iniciarControl;
+        document.getElementById('btn-enviar-puntos').onclick = enviarPuntosManual;
+        document.getElementById('btn-base-actualizar').onclick = actualizarPuntosDesdeBase;
+        document.getElementById('btn-reiniciar').onclick = reiniciarTodo;
 
         function iniciarBase() {
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
-
-            salaId = "SALA_" + Math.floor(1000 + Math.random() * 9000);
-            
-            // Genera el enlace dinámico automático para compartir
-            var enlaceCompleto = window.location.href.split('?')[0] + "?torneoId=" + salaId;
-            document.getElementById('link-compartir').innerText = enlaceCompleto;
 
             var selectBaseEq = document.getElementById('select-base-equipo');
             selectBaseEq.innerHTML = '';
@@ -146,19 +129,14 @@
                 selectBaseEq.innerHTML += '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
             }
 
-            dibujarTabla();
-            conectarCanalDeRed();
-        }
-
-        function conectarCanalDeRed() {
-            // Canal nativo y rápido que comunica las pestañas de forma inmediata
-            canalRed = new BroadcastChannel('canal_torneo_' + salaId);
-            canalRed.onmessage = function(evento) {
-                if (evento.data && evento.data.tipo === 'actualizar') {
-                    matrizPuntos = evento.data.datos;
-                    dibujarTabla();
+            // Escuchar cambios globales de internet en la computadora en tiempo real
+            nodoRef.on('value', function(snapshot) {
+                var data = snapshot.val();
+                if (data) {
+                    matrizPuntos = data;
                 }
-            };
+                dibujarTabla();
+            });
         }
 
         function dibujarTabla() {
@@ -171,21 +149,17 @@
                 var fila = '<tr><td><strong>' + eq + '</strong></td>';
                 var sumaTotal = 0;
                 
-                // 5 Estaciones básicas
                 for (var j = 0; j < juegos.length; j++) {
-                    var pts = matrizPuntos[eq][juegos[j]] || 0;
+                    var pts = (matrizPuntos[eq] && matrizPuntos[eq][juegos[j]]) ? matrizPuntos[eq][juegos[j]] : 0;
                     fila += '<td>' + pts + '</td>';
                     sumaTotal += pts;
                 }
                 
-                // Casilla extra de Puntualidad
-                var puntualidadPts = matrizPuntos[eq]["Puntualidad"] || 0;
+                var puntualidadPts = (matrizPuntos[eq] && matrizPuntos[eq]["Puntualidad"]) ? matrizPuntos[eq]["Puntualidad"] : 0;
                 fila += '<td style="background-color: #fef3c7; font-weight:bold;">' + puntualidadPts + '</td>';
                 sumaTotal += puntualidadPts;
 
-                // Cálculo del promedio matemático real (Suma de los 5 juegos + Puntualidad, todo dividido entre 6)
                 var promedioFinal = (sumaTotal / 6).toFixed(1);
-                
                 fila += '<td class="total-col">' + promedioFinal + '</td></tr>';
                 cuerpo.innerHTML += fila;
             }
@@ -196,3 +170,31 @@
 
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-control').classList.remove('hidden');
+            document.getElementById('titulo-juego-control').innerText = "Estación: " + miJuegoAsignado;
+
+            var selectEq = document.getElementById('select-equipo-control');
+            selectEq.innerHTML = '';
+            for (var i = 0; i < equipos.length; i++) {
+                selectEq.innerHTML += '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
+            }
+
+            // Mantener sincronizado el celular con los últimos puntajes de la nube
+            nodoRef.on('value', function(snapshot) {
+                var data = snapshot.val();
+                if (data) { matrizPuntos = data; }
+            });
+        }
+
+        function enviarPuntosManual() {
+            var eqSel = document.getElementById('select-equipo-control').value;
+            var puntos = parseInt(document.getElementById('input-puntos-manual').value);
+
+            if (isNaN(puntos) || puntos < 1 || puntos > 100) {
+                alert("Error: Puntuación debe ser entre 1 y 100.");
+                return;
+            }
+
+            // Guardar directamente en la nube de Google
+            var cambio = {};
+            cambio[miJuegoAsignado] = puntos;
+            nodoRef.child(eqSel).update(cambio).then(function() {
