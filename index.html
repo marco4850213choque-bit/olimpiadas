@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo - Centro de Puntaje</title>
+    <title>Sistema de Torneo - Centro de Puntaje</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 650px; margin: 15px auto; }
@@ -18,6 +18,7 @@
         .hidden { display: none !important; }
         select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; }
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        .link-box { background: #e0e7ff; color: #3730a3; padding: 12px; border-radius: 6px; font-size: 13px; word-break: break-all; margin: 10px 0; font-weight: bold; border: 1px solid #c7d2fe; }
     </style>
 </head>
 <body>
@@ -26,21 +27,32 @@
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos + Puntualidad</h2>
         <p>Selecciona el rol de este dispositivo:</p>
-        <button class="btn-menu" onclick="iniciarBase()">🖥️ Centro de Puntaje (Ver Tabla)</button>
+        <button class="btn-menu" id="btn-crear-base">🖥️ Centro de Puntaje (Ver Tabla)</button>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <p><strong>Modo Celular Estación:</strong></p>
-        <select id="select-juego-asignado">
-            <option value="Juego 1">Estación: Juego 1</option>
-            <option value="Juego 2">Estación: Juego 2</option>
-            <option value="Juego 3">Estación: Juego 3</option>
-            <option value="Juego 4">Estación: Juego 4</option>
-            <option value="Juego 5">Estación: Juego 5</option>
-        </select>
-        <button class="btn-menu" style="background-color: #10b981;" onclick="iniciarControl()">Ingresar como Estación ✅</button>
+        
+        <p id="msg-espera-link" style="color: #6b7280; font-size: 14px;">
+            ⚠️ Para ingresar como Estación desde los celulares, debes abrir el enlace especial generado por el Centro de Puntaje.
+        </p>
+
+        <!-- Se activa automáticamente si el enlace tiene el ID del torneo -->
+        <div id="box-estacion-directo" class="hidden">
+            <p><strong>Configurar Celular Estación:</strong></p>
+            <select id="select-juego-asignado">
+                <option value="Juego 1">Estación: Juego 1</option>
+                <option value="Juego 2">Estación: Juego 2</option>
+                <option value="Juego 3">Estación: Juego 3</option>
+                <option value="Juego 4">Estación: Juego 4</option>
+                <option value="Juego 5">Estación: Juego 5</option>
+            </select>
+            <button class="btn-menu" style="background-color: #10b981;" id="btn-crear-control">Ingresar como Estación ✅</button>
+        </div>
     </div>
 
     <!-- PANTALLA 2: COMPUTADORA BASE (CENTRO DE PUNTAJE) -->
     <div id="view-base" class="card hidden" style="max-width: 100%;">
+        <p>📢 <strong>Enlace para los celulares de las Estaciones:</strong></p>
+        <div id="link-compartir" class="link-box">Generando enlace...</div>
+        
         <h2>Centro de Puntaje - Tabla General</h2>
         <div style="overflow-x: auto;">
             <table>
@@ -61,7 +73,7 @@
         </div>
 
         <div class="admin-box">
-            <h4>✏️ Modificar Puntos / Puntualidad desde la Base</h4>
+            <h4>✏️ Modificar Puntos / Puntualidad desde el Centro de Puntaje</h4>
             <select id="select-base-equipo"></select>
             <select id="select-base-juego">
                 <option value="Juego 1">Juego 1</option>
@@ -72,10 +84,10 @@
                 <option value="Puntualidad">Casilla Extra: Puntualidad</option>
             </select>
             <input type="number" id="input-base-puntos" min="1" max="100" placeholder="Puntos (1 a 100)">
-            <button class="btn-send" style="background-color: #d97706; width: 90%;" onclick="actualizarPuntosDesdeBase()">Actualizar Puntuación Manual 📤</button>
+            <button class="btn-send" style="background-color: #d97706; width: 90%;" id="btn-base-actualizar">Actualizar Puntuación Manual 📤</button>
         </div>
         <br>
-        <button style="background:#6b7280; color:white;" onclick="reiniciarTodo()">🔄 Reiniciar Todo a 0</button>
+        <button id="btn-reiniciar" style="background:#6b7280; color:white;">🔄 Reiniciar Todo a 0</button>
     </div>
 
     <!-- PANTALLA 3: ESTACIONES DE CELULARES -->
@@ -85,17 +97,16 @@
         <select id="select-equipo-control"></select>
         <label style="display:block; margin-top:15px;">2. Puntos a guardar (Rango 1 a 100):</label>
         <input type="number" id="input-puntos-manual" min="1" max="100" placeholder="Ej: 85">
-        <button class="btn-send" onclick="enviarPuntosManual()">Actualizar Puntuación 📤</button>
+        <button class="btn-send" id="btn-enviar-puntos">Actualizar Puntuación 📤</button>
     </div>
 
     <script>
-        var urlNube = "https://restful-api.dev";
-        var idTorneoUnico = "torneo_centro_de_puntaje_fijo_2026";
-
         var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         var juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
         var matrizPuntos = {};
         var miJuegoAsignado = "";
+        var salaId = "";
+        var canalSincronizacion = null;
 
         // Inicializar estructura limpia por defecto
         for (var i = 0; i < equipos.length; i++) {
@@ -105,9 +116,34 @@
             }
         }
 
+        // Enlace forzado y seguro de eventos para evitar congelamiento de botones
+        window.onload = function() {
+            document.getElementById('btn-crear-base').onclick = iniciarBase;
+            document.getElementById('btn-crear-control').onclick = iniciarControl;
+            document.getElementById('btn-enviar-puntos').onclick = enviarPuntosManual;
+            document.getElementById('btn-base-actualizar').onclick = actualizarPuntosDesdeBase;
+            document.getElementById('btn-reiniciar').onclick = reiniciarTodo;
+
+            // Detecta si el dispositivo abrió el enlace generado de la base
+            var urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('torneoToken')) {
+                salaId = urlParams.get('torneoToken');
+                document.getElementById('box-estacion-directo').classList.remove('hidden');
+                document.getElementById('msg-espera-link').classList.add('hidden');
+                conectarCanalSincronizado();
+            }
+        };
+
         function iniciarBase() {
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
+
+            // Generador de clave única interna
+            salaId = "TORNEO_" + Math.floor(1000 + Math.random() * 9000);
+            
+            // Crea el enlace web que debes pasar a los celulares
+            var enlaceCompartir = window.location.href.split('?')[0] + "?torneoToken=" + salaId;
+            document.getElementById('link-compartir').innerText = enlaceCompartir;
 
             var selectBaseEq = document.getElementById('select-base-equipo');
             selectBaseEq.innerHTML = '';
@@ -116,10 +152,18 @@
             }
 
             dibujarTabla();
-            subirAInternet();
+            conectarCanalSincronizado();
+        }
 
-            // Actualización asíncrona robusta en segundo plano
-            setInterval(descargarDeInternet, 2000);
+        function conectarCanalSincronizado() {
+            // Canal de comunicación nativo integrado en el navegador
+            canalSincronizacion = new BroadcastChannel('canal_' + salaId);
+            canalSincronizacion.onmessage = function(evento) {
+                if (evento.data && evento.data.tipo === 'actualizar') {
+                    matrizPuntos = evento.data.datos;
+                    dibujarTabla();
+                }
+            };
         }
 
         function dibujarTabla() {
@@ -142,65 +186,9 @@
                 fila += '<td style="background-color: #fef3c7; font-weight:bold;">' + puntualidadPts + '</td>';
                 sumaTotal += puntualidadPts;
 
+                // Promedio matemático exacto: (5 juegos + Puntualidad) / 6
                 var promedioFinal = (sumaTotal / 6).toFixed(1);
                 fila += '<td class="total-col">' + promedioFinal + '</td></tr>';
                 cuerpo.innerHTML += fila;
             }
         }
-
-        function iniciarControl() {
-            miJuegoAsignado = document.getElementById('select-juego-asignado').value;
-
-            document.getElementById('view-inicio').classList.add('hidden');
-            document.getElementById('view-control').classList.remove('hidden');
-            document.getElementById('titulo-juego-control').innerText = miJuegoAsignado;
-
-            var selectEq = document.getElementById('select-equipo-control');
-            selectEq.innerHTML = '';
-            for (var i = 0; i < equipos.length; i++) {
-                selectEq.innerHTML += '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
-            }
-
-            descargarDeInternet();
-        }
-
-        function subirAInternet() {
-            fetch(urlNube, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: idTorneoUnico, data: matrizPuntos })
-            }).catch(function(e){});
-        }
-
-        function descargarDeInternet() {
-            fetch(urlNube).then(function(res){ return res.json(); }).then(function(data) {
-                var encontrado = data.reverse().find(function(obj){ return obj.name === idTorneoUnico; });
-                if (encontrado && encontrado.data) {
-                    matrizPuntos = encontrado.data;
-                    dibujarTabla();
-                }
-            }).catch(function(e){});
-        }
-
-        function enviarPuntosManual() {
-            var eqSel = document.getElementById('select-equipo-control').value;
-            var puntos = parseInt(document.getElementById('input-puntos-manual').value);
-
-            if (isNaN(puntos) || puntos < 1 || puntos > 100) {
-                alert("Error: Puntuación debe ser entre 1 y 100.");
-                return;
-            }
-
-            fetch(urlNube).then(function(res){ return res.json(); }).then(function(data) {
-                var encontrado = data.reverse().find(function(obj){ return obj.name === idTorneoUnico; });
-                if (encontrado && encontrado.data) { matrizPuntos = encontrado.data; }
-                
-                matrizPuntos[eqSel][miJuegoAsignado] = puntos;
-                subirAInternet();
-                document.getElementById('input-puntos-manual').value = '';
-                alert("Puntuación enviada con éxito.");
-            });
-        }
-
-        function actualizarPuntosDesdeBase() {
-            var eqSel = document.getElementById('select-base-equipo').value;
