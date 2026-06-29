@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo 5 Juegos - Versión Estable</title>
+    <title>Torneo 5 Juegos - Seguridad Base</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: 15px auto; }
@@ -28,7 +28,9 @@
         <p>Elige el rol de este celular:</p>
         <button class="btn-menu" id="btn-crear-base">🖥️ Celular Base (Ver Tabla)</button>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <input type="text" id="input-codigo" maxlength="4" placeholder="Código de 4 dígitos">
+        
+        <p><strong>Acceso Libre a Estaciones:</strong></p>
+        <input type="text" id="input-codigo" maxlength="4" placeholder="Código de la Base (4 números)">
         <select id="select-juego-asignado">
             <option value="Juego 1">Controlar: Juego 1</option>
             <option value="Juego 2">Controlar: Juego 2</option>
@@ -73,12 +75,12 @@
         <button class="btn-send" id="btn-enviar-puntos">Actualizar Puntuación 📤</button>
     </div>
 
-    <!-- Cargamos las librerías de Firebase de forma clásica y estable -->
+    <!-- Librerías de Firebase estables -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
 
     <script>
-        // Configuración directa del servidor en la nube sin módulos
+        // Servidor en la nube público
         const config = { databaseURL: "https://firebaseio.com" };
         firebase.initializeApp(config);
         const db = firebase.database();
@@ -92,26 +94,35 @@
         // Inicializar estructura limpia
         equipos.forEach(eq => { matrizPuntos[eq] = {}; juegos.forEach(ju => matrizPuntos[eq][ju] = 0); });
 
-        // Enlace seguro de eventos a los botones para evitar errores de clicks
-        document.getElementById('btn-crear-base').addEventListener('click', iniciarBase);
+        // Eventos de los botones
+        document.getElementById('btn-crear-base').addEventListener('click', verificarSeguridadBase);
         document.getElementById('btn-crear-control').addEventListener('click', iniciarControl);
         document.getElementById('btn-enviar-puntos').addEventListener('click', enviarPuntosManual);
         document.getElementById('btn-reiniciar').addEventListener('click', reiniciarTodo);
+
+        function verificarSeguridadBase() {
+            // Solicita la contraseña para entrar al modo base
+            const password = prompt("Introduce el código de seguridad para activar la Base:");
+            
+            if (password === "1234") {
+                iniciarBase();
+            } else {
+                alert("Código incorrecto. No tienes acceso al Celular Base.");
+            }
+        }
 
         function iniciarBase() {
             document.getElementById('view-inicio').classList.add('hidden');
             document.getElementById('view-base').classList.remove('hidden');
 
-            // Genera código de 4 dígitos numéricos aleatorios
+            // Genera código aleatorio de 4 dígitos para las estaciones
             salaId = Math.floor(1000 + Math.random() * 9000).toString();
             document.getElementById('txt-codigo-base').innerText = salaId;
 
             const salaRef = db.ref('torneos/' + salaId);
-            
-            // Subir estructura inicial si no existe
             salaRef.set(matrizPuntos);
 
-            // Escuchar cambios en la nube en tiempo real
+            // Escuchar cambios en tiempo real
             salaRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -147,7 +158,7 @@
 
             const salaRef = db.ref('torneos/' + salaId);
 
-            // Verificar si el código existe
+            // Acceso directo a las estaciones validando el código de vinculación
             salaRef.once('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data) {
