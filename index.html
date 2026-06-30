@@ -23,8 +23,6 @@
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
         .status { font-size: 12px; color: #4f46e5; font-weight: bold; margin-top: 5px; }
     </style>
-    <!-- Librería oficial y moderna de Supabase en la nube -->
-    <script src="https://jsdelivr.net"></script>
 </head>
 <body>
 
@@ -35,14 +33,15 @@
         <a href="#view-base" class="btn-link btn-purple" onclick="activarModoBase()">🖥️ Centro de Puntaje (Computadora)</a>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
         <p><strong>Modo Celular Estación:</strong></p>
-        <a href="#view-estacion" class="btn-link btn-green">🎮 Ingresar como Estación de Juego</a>
+        <a href="#view-estacion" class="btn-link btn-green" onclick="activarModoControl()">🎮 Ingresar como Estación de Juego</a>
     </div>
 
     <!-- PANTALLA 2: COMPUTADORA BASE (CENTRO DE PUNTAJE) -->
     <div id="view-base" class="card">
         <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back" onclick="detenerSincronizacion()">⬅️ Volver</a></div>
         <h2>Centro de Puntaje - Tabla General</h2>
-        <div class="status">Sincronización en la nube activa v2026 ✅</div>
+        <button class="btn-link btn-purple" style="width: auto; margin-bottom: 5px;" onclick="descargarDatos()">🔄 Forzar Sincronización Manual</button>
+        <div class="status">Sincronización en la nube nativa activa ✅</div>
         
         <div style="overflow-x: auto;">
             <table>
@@ -51,7 +50,15 @@
                         <th>Equipo</th><th>Juego 1</th><th>Juego 2</th><th>Juego 3</th><th>Juego 4</th><th>Juego 5</th><th style="background-color: #d97706; color:white;">Puntualidad</th><th>Promedio Final</th>
                     </tr>
                 </thead>
-                <tbody id="tabla-cuerpo"></tbody>
+                <tbody id="tabla-cuerpo">
+                    <!-- Equipos estáticos para evitar que la pantalla se quede vacía -->
+                    <tr id="row-Equipo1"><td><strong>Equipo 1</strong></td><td id="cell-Equipo1-juego1">0</td><td id="cell-Equipo1-juego2">0</td><td id="cell-Equipo1-juego3">0</td><td id="cell-Equipo1-juego4">0</td><td id="cell-Equipo1-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo1-puntualidad">0</td><td class="total-col" id="prom-Equipo1">0.0</td></tr>
+                    <tr id="row-Equipo2"><td><strong>Equipo 2</strong></td><td id="cell-Equipo2-juego1">0</td><td id="cell-Equipo2-juego2">0</td><td id="cell-Equipo2-juego3">0</td><td id="cell-Equipo2-juego4">0</td><td id="cell-Equipo2-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo2-puntualidad">0</td><td class="total-col" id="prom-Equipo2">0.0</td></tr>
+                    <tr id="row-Equipo3"><td><strong>Equipo 3</strong></td><td id="cell-Equipo3-juego1">0</td><td id="cell-Equipo3-juego2">0</td><td id="cell-Equipo3-juego3">0</td><td id="cell-Equipo3-juego4">0</td><td id="cell-Equipo3-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo3-puntualidad">0</td><td class="total-col" id="prom-Equipo3">0.0</td></tr>
+                    <tr id="row-Equipo4"><td><strong>Equipo 4</strong></td><td id="cell-Equipo4-juego1">0</td><td id="cell-Equipo4-juego2">0</td><td id="cell-Equipo4-juego3">0</td><td id="cell-Equipo4-juego4">0</td><td id="cell-Equipo4-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo4-puntualidad">0</td><td class="total-col" id="prom-Equipo4">0.0</td></tr>
+                    <tr id="row-Equipo5"><td><strong>Equipo 5</strong></td><td id="cell-Equipo5-juego1">0</td><td id="cell-Equipo5-juego2">0</td><td id="cell-Equipo5-juego3">0</td><td id="cell-Equipo5-juego4">0</td><td id="cell-Equipo5-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo5-puntualidad">0</td><td class="total-col" id="prom-Equipo5">0.0</td></tr>
+                    <tr id="row-Equipo6"><td><strong>Equipo 6</strong></td><td id="cell-Equipo6-juego1">0</td><td id="cell-Equipo6-juego2">0</td><td id="cell-Equipo6-juego3">0</td><td id="cell-Equipo6-juego4">0</td><td id="cell-Equipo6-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo6-puntualidad">0</td><td class="total-col" id="prom-Equipo6">0.0</td></tr>
+                </tbody>
             </table>
         </div>
 
@@ -89,16 +96,21 @@
     </div>
 
     <script>
-        // !!! CONFIGURACIÓN OBLIGATORIA DE TU PROYECTO SUPABASE !!!
+        // !!! REEMPLAZA ESTO CON TUS DATOS REALES DE SUPABASE !!!
         var SUPABASE_URL = "https://buodjwbjtedlhkcejyjf.supabase.co/rest/v1/";
         var SUPABASE_KEY = "sb_publishable_XPEEaBrGR-P16EOWo_prAw_iIs7qiaL";
         
-        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         var intervalo = null;
+        var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
+        var juegos = ["juego1", "juego2", "juego3", "juego4", "juego5", "puntualidad"];
 
         function activarModoBase() {
             descargarDatos();
-            intervalo = setInterval(descargarDatos, 2500); // Descarga en vivo de internet cada 2.5 segundos
+            intervalo = setInterval(descargarDatos, 3000); // Sincroniza de internet cada 3 segundos
+        }
+
+        function activarModoControl() {
+            descargarDatos();
         }
 
         function detenerSincronizacion() {
@@ -106,73 +118,20 @@
         }
 
         function dibujarTabla(datos) {
-            var cuerpo = document.getElementById('tabla-cuerpo');
-            if(!cuerpo) return;
-            cuerpo.innerHTML = '';
-            
-            // Ordenar los equipos de forma estricta del 1 al 6
-            datos.sort((a, b) => a.id.localeCompare(b.id));
-
             datos.forEach(row => {
-                let j1 = row.juego1 || 0; let j2 = row.juego2 || 0; let j3 = row.juego3 || 0;
-                let j4 = row.juego4 || 0; let j5 = row.juego5 || 0; let punt = row.puntualidad || 0;
+                var eq = row.id;
+                var suma = 0;
                 
-                let suma = j1 + j2 + j3 + j4 + j5 + punt;
-                let promedio = (suma / 6).toFixed(1);
+                juegos.forEach(ju => {
+                    var pts = row[ju] || 0;
+                    var cell = document.getElementById("cell-" + eq + "-" + ju);
+                    if(cell) cell.innerText = pts;
+                    suma += parseInt(pts);
+                });
 
-                let fila = `<tr>
-                    <td><strong>${row.id}</strong></td><td>${j1}</td><td>${j2}</td><td>${j3}</td><td>${j4}</td><td>${j5}</td>
-                    <td style="background-color: #fef3c7; font-weight:bold;">${punt}</td>
-                    <td class="total-col">${promedio}</td>
-                </tr>`;
-                cuerpo.innerHTML += fila;
+                // PROMEDIO AUTOMÁTICO DE LOS 5 JUEGOS + PUNTUALIDAD
+                var promCell = document.getElementById("prom-" + eq);
+                if(promCell) promCell.innerText = (suma / 6).toFixed(1);
             });
         }
 
-        async function descargarDatos() {
-            let { data, error } = await supabaseClient.from('marcador').select('*');
-            if (!error && data) { dibujarTabla(data); }
-        }
-
-        async function enviarPuntos() {
-            var juego = document.getElementById('ins-juego').value;
-            var equipo = document.getElementById('ins-equipo').value;
-            var puntos = parseInt(document.getElementById('ins-puntos').value);
-
-            if(isNaN(puntos) || puntos < 1 || puntos > 100) return alert("Puntuación inválida (1-100).");
-
-            let updateData = {}; updateData[juego] = puntos;
-            
-            let { error } = await supabaseClient.from('marcador').update(updateData).eq('id', equipo);
-            if(!error) {
-                document.getElementById('ins-puntos').value = '';
-                alert("¡Puntuación de " + puntos + " enviada exitosamente por internet!");
-            } else {
-                alert("Error de envío. Revisa tu conexión.");
-            }
-        }
-
-        async function actualizarDesdeBase() {
-            var eq = document.getElementById('select-base-equipo').value;
-            var ju = document.getElementById('select-base-juego').value;
-            var puntos = parseInt(document.getElementById('input-base-puntos').value);
-
-            if(isNaN(puntos) || puntos < 1 || puntos > 100) return alert("Puntuación inválida (1-100).");
-
-            let updateData = {}; updateData[ju] = puntos;
-            let { error } = await supabaseClient.from('marcador').update(updateData).eq('id', eq);
-            if(!error) {
-                document.getElementById('input-base-puntos').value = '';
-                alert("¡Marcador modificado!");
-                descargarDatos();
-            }
-        }
-
-        async function reiniciarTodo() {
-            if (!confirm("¿Deseas reiniciar todos los marcadores a 0?")) return;
-            let { error } = await supabaseClient.from('marcador').update({ juego1:0, juego2:0, juego3:0, juego4:0, juego5:0, puntualidad:0 }).neq('id', '');
-            if(!error) descargarDatos();
-        }
-    </script>
-</body>
-</html>
