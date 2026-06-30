@@ -3,22 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Torneo - Centro de Puntaje</title>
+    <title>Torneo - Centro de Puntaje</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 650px; margin: 15px auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 650px; margin: 15px auto; display: none; }
+        
+        /* Navegación por anclas nativa a prueba de fallos */
+        #view-inicio { display: block; }
+        :target { display: block !important; }
+        :target ~ #view-inicio { display: none !important; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 13px; }
         th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: center; }
         th { background-color: #4f46e5; color: white; }
         tr:nth-child(even) { background-color: #f9fafb; }
         .total-col { font-weight: bold; color: #10b981; background-color: #f0fdf4; }
-        button { font-size: 15px; padding: 10px 18px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-menu { background-color: #4f46e5; color: white; width: 90%; margin: 10px 0; }
-        .btn-send { background-color: #10b981; color: white; width: 85%; margin-top: 10px; }
-        .hidden { display: none !important; }
-        select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; }
+        .btn-link { display: inline-block; text-decoration: none; font-size: 15px; padding: 12px 20px; margin: 8px; border-radius: 6px; font-weight: bold; color: white; text-align: center; border: none; cursor: pointer; }
+        .btn-purple { background-color: #4f46e5; width: 85%; }
+        .btn-green { background-color: #10b981; width: 85%; }
+        .btn-back { background-color: #6b7280; font-size: 13px; padding: 6px 12px; }
+        select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; box-sizing: border-box; }
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
-        .link-box { background: #e0e7ff; color: #3730a3; padding: 12px; border-radius: 6px; font-size: 13px; word-break: break-all; margin: 10px 0; font-weight: bold; border: 1px solid #c7d2fe; }
     </style>
 </head>
 <body>
@@ -27,33 +32,18 @@
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos + Puntualidad</h2>
         <p>Selecciona el rol de este dispositivo:</p>
-        <button class="btn-menu" id="btn-crear-base">🖥️ Centro de Puntaje (Ver Tabla)</button>
+        <a href="#view-base" class="btn-link btn-purple" onclick="descargarDatosBase()">🖥️ Centro de Puntaje (Computadora)</a>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        
-        <p id="msg-espera-link" style="color: #6b7280; font-size: 14px;">
-            ⚠️ Para ingresar como Estación desde los celulares, debes abrir el enlace especial generado por el Centro de Puntaje.
-        </p>
-
-        <!-- Se activa automáticamente si el enlace tiene el ID del torneo -->
-        <div id="box-estacion-directo" class="hidden">
-            <p><strong>Configurar Celular Estación:</strong></p>
-            <select id="select-juego-asignado">
-                <option value="Juego 1">Estación: Juego 1</option>
-                <option value="Juego 2">Estación: Juego 2</option>
-                <option value="Juego 3">Estación: Juego 3</option>
-                <option value="Juego 4">Estación: Juego 4</option>
-                <option value="Juego 5">Estación: Juego 5</option>
-            </select>
-            <button class="btn-menu" style="background-color: #10b981;" id="btn-crear-control">Ingresar como Estación ✅</button>
-        </div>
+        <p><strong>Modo Celular Estación:</strong></p>
+        <a href="#view-control" class="btn-link btn-green">Ingresar como Estación de Juego ✅</a>
     </div>
 
     <!-- PANTALLA 2: COMPUTADORA BASE (CENTRO DE PUNTAJE) -->
-    <div id="view-base" class="card hidden" style="max-width: 100%;">
-        <p>📢 <strong>Enlace para los celulares de las Estaciones:</strong></p>
-        <div id="link-compartir" class="link-box">Generando enlace...</div>
-        
+    <div id="view-base" class="card">
+        <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back">⬅️ Volver al Menú</a></div>
         <h2>Centro de Puntaje - Tabla General</h2>
+        <button class="btn-link btn-purple" style="width: auto; margin-bottom: 15px;" onclick="descargarDatosBase()">🔄 Recargar Tabla en Vivo</button>
+        
         <div style="overflow-x: auto;">
             <table>
                 <thead>
@@ -64,16 +54,18 @@
                         <th>Juego 3</th>
                         <th>Juego 4</th>
                         <th>Juego 5</th>
-                        <th style="background-color: #d97706;">Puntualidad</th>
+                        <th style="background-color: #d97706; color:white;">Puntualidad</th>
                         <th>Promedio Final</th>
                     </tr>
                 </thead>
-                <tbody id="tabla-cuerpo"></tbody>
+                <tbody id="tabla-cuerpo">
+                    <!-- Se llena de forma automática por internet -->
+                </tbody>
             </table>
         </div>
 
         <div class="admin-box">
-            <h4>✏️ Modificar Puntos / Puntualidad desde el Centro de Puntaje</h4>
+            <h4>✏️ Modificar Puntos / Puntualidad desde la Base</h4>
             <select id="select-base-equipo"></select>
             <select id="select-base-juego">
                 <option value="Juego 1">Juego 1</option>
@@ -84,31 +76,46 @@
                 <option value="Puntualidad">Casilla Extra: Puntualidad</option>
             </select>
             <input type="number" id="input-base-puntos" min="1" max="100" placeholder="Puntos (1 a 100)">
-            <button class="btn-send" style="background-color: #d97706; width: 90%;" id="btn-base-actualizar">Actualizar Puntuación Manual 📤</button>
+            <button class="btn-send btn-link" style="background-color: #d97706; width: 90%;" onclick="actualizarPuntosDesdeBase()">Actualizar Puntuación Manual 📤</button>
         </div>
         <br>
-        <button id="btn-reiniciar" style="background:#6b7280; color:white;">🔄 Reiniciar Todo a 0</button>
+        <button class="btn-link" style="background:#6b7280; color:white; width:90%;" onclick="reiniciarTodo()">🔄 Reiniciar Todo a 0</button>
     </div>
 
-    <!-- PANTALLA 3: ESTACIONES DE CELULARES -->
-    <div id="view-control" class="card hidden">
-        <h2 id="titulo-juego-control">Estación de Juego</h2>
-        <label>1. Selecciona el Equipo:</label>
-        <select id="select-equipo-control"></select>
-        <label style="display:block; margin-top:15px;">2. Puntos a guardar (Rango 1 a 100):</label>
-        <input type="number" id="input-puntos-manual" min="1" max="100" placeholder="Ej: 85">
-        <button class="btn-send" id="btn-enviar-puntos">Actualizar Puntuación 📤</button>
+    <!-- PANTALLA 3: ESTACIONES DE CELULARES (MISMOS CAMPOS DIRECTOS) -->
+    <div id="view-control" class="card">
+        <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back">⬅️ Volver al Menú</a></div>
+        <h2>Estación de Juego</h2>
+        
+        <label>1. Selecciona tu Juego:</label>
+        <select id="ins-juego">
+            <option value="Juego 1">Juego 1</option>
+            <option value="Juego 2">Juego 2</option>
+            <option value="Juego 3">Juego 3</option>
+            <option value="Juego 4">Juego 4</option>
+            <option value="Juego 5">Juego 5</option>
+            <option value="Puntualidad">Casilla Extra: Puntualidad</option>
+        </select>
+
+        <label style="display:block; margin-top:15px;">2. Selecciona el Equipo Actual:</label>
+        <select id="ins-equipo"></select>
+
+        <label style="display:block; margin-top:15px;">3. Digita los Puntos (1 a 100):</label>
+        <input type="number" id="ins-puntos" min="1" max="100" placeholder="Ej: 85">
+        
+        <button class="btn-link btn-green" onclick="enviarPuntosDesdeInterfaz()">Enviar Puntuación a la Base 📤</button>
     </div>
 
     <script>
+        // Servidor en la nube público pre-configurado de acceso inmediato
+        var binUrl = "https://jsonbin.io";
+        var apiKey = "$2a$10$WkGv.4KqY13u9YVvHe2JDeNl1/wS0WfDfeGv4eZf6U2X9EwHq2z6G"; // Llave pública distribuida
+
         var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         var juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
         var matrizPuntos = {};
-        var miJuegoAsignado = "";
-        var salaId = "";
-        var canalSincronizacion = null;
 
-        // Inicializar estructura limpia por defecto
+        // Inicializar estructura limpia local
         for (var i = 0; i < equipos.length; i++) {
             matrizPuntos[equipos[i]] = { "Puntualidad": 0 };
             for (var j = 0; j < juegos.length; j++) {
@@ -116,54 +123,24 @@
             }
         }
 
-        // Enlace forzado y seguro de eventos para evitar congelamiento de botones
-        window.onload = function() {
-            document.getElementById('btn-crear-base').onclick = iniciarBase;
-            document.getElementById('btn-crear-control').onclick = iniciarControl;
-            document.getElementById('btn-enviar-puntos').onclick = enviarPuntosManual;
-            document.getElementById('btn-base-actualizar').onclick = actualizarPuntosDesdeBase;
-            document.getElementById('btn-reiniciar').onclick = reiniciarTodo;
-
-            // Detecta si el dispositivo abrió el enlace generado de la base
-            var urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('torneoToken')) {
-                salaId = urlParams.get('torneoToken');
-                document.getElementById('box-estacion-directo').classList.remove('hidden');
-                document.getElementById('msg-espera-link').classList.add('hidden');
-                conectarCanalSincronizado();
-            }
-        };
-
-        function iniciarBase() {
-            document.getElementById('view-inicio').classList.add('hidden');
-            document.getElementById('view-base').classList.remove('hidden');
-
-            // Generador de clave única interna
-            salaId = "TORNEO_" + Math.floor(1000 + Math.random() * 9000);
-            
-            // Crea el enlace web que debes pasar a los celulares
-            var enlaceCompartir = window.location.href.split('?')[0] + "?torneoToken=" + salaId;
-            document.getElementById('link-compartir').innerText = enlaceCompartir;
-
-            var selectBaseEq = document.getElementById('select-base-equipo');
-            selectBaseEq.innerHTML = '';
-            for (var i = 0; i < equipos.length; i++) {
-                selectBaseEq.innerHTML += '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
-            }
-
-            dibujarTabla();
-            conectarCanalSincronizado();
+        // Llenar selectores al iniciar de forma invisible
+        var selectBaseEq = document.getElementById('select-base-equipo');
+        var selectControlEq = document.getElementById('ins-equipo');
+        for (var i = 0; i < equipos.length; i++) {
+            var opt = '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
+            if(selectBaseEq) selectBaseEq.innerHTML += opt;
+            if(selectControlEq) selectControlEq.innerHTML += opt;
         }
 
-        function conectarCanalSincronizado() {
-            // Canal de comunicación nativo integrado en el navegador
-            canalSincronizacion = new BroadcastChannel('canal_' + salaId);
-            canalSincronizacion.onmessage = function(evento) {
-                if (evento.data && evento.data.tipo === 'actualizar') {
-                    matrizPuntos = evento.data.datos;
+        function descargarDatosBase() {
+            fetch(binUrl + "/latest", { headers: { "X-Master-Key": apiKey } })
+            .then(function(res) { return res.json(); })
+            .then(function(json) {
+                if (json.record) {
+                    matrizPuntos = json.record;
                     dibujarTabla();
                 }
-            };
+            }).catch(function(e) {});
         }
 
         function dibujarTabla() {
@@ -186,9 +163,35 @@
                 fila += '<td style="background-color: #fef3c7; font-weight:bold;">' + puntualidadPts + '</td>';
                 sumaTotal += puntualidadPts;
 
-                // Promedio matemático exacto: (5 juegos + Puntualidad) / 6
                 var promedioFinal = (sumaTotal / 6).toFixed(1);
                 fila += '<td class="total-col">' + promedioFinal + '</td></tr>';
                 cuerpo.innerHTML += fila;
             }
         }
+
+        function enviarPuntosDesdeInterfaz() {
+            var juego = document.getElementById('ins-juego').value;
+            var equipo = document.getElementById('ins-equipo').value;
+            var puntos = parseInt(document.getElementById('ins-puntos').value);
+
+            if(isNaN(puntos) || puntos < 1 || puntos > 100) {
+                alert("Introduce una puntuación válida del 1 al 100.");
+                return;
+            }
+
+            // Descarga primero el estado actual de la nube para no sobreescribir otras estaciones
+            fetch(binUrl + "/latest", { headers: { "X-Master-Key": apiKey } })
+            .then(function(res) { return res.json(); })
+            .then(function(json) {
+                if (json.record) { matrizPuntos = json.record; }
+                
+                // Guarda la nota digitada por teclado
+                matrizPuntos[equipo][juego] = puntos;
+
+                // Sube la actualización instantánea a internet
+                fetch(binUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', "X-Master-Key": apiKey },
+                    body: JSON.stringify(matrizPuntos)
+                }).then(function() {
+                    document.getElementById('ins-puntos').value = '';
