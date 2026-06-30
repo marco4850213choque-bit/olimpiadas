@@ -51,7 +51,6 @@
                     </tr>
                 </thead>
                 <tbody id="tabla-cuerpo">
-                    <!-- Equipos estáticos para evitar que la pantalla se quede vacía -->
                     <tr id="row-Equipo1"><td><strong>Equipo 1</strong></td><td id="cell-Equipo1-juego1">0</td><td id="cell-Equipo1-juego2">0</td><td id="cell-Equipo1-juego3">0</td><td id="cell-Equipo1-juego4">0</td><td id="cell-Equipo1-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo1-puntualidad">0</td><td class="total-col" id="prom-Equipo1">0.0</td></tr>
                     <tr id="row-Equipo2"><td><strong>Equipo 2</strong></td><td id="cell-Equipo2-juego1">0</td><td id="cell-Equipo2-juego2">0</td><td id="cell-Equipo2-juego3">0</td><td id="cell-Equipo2-juego4">0</td><td id="cell-Equipo2-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo2-puntualidad">0</td><td class="total-col" id="prom-Equipo2">0.0</td></tr>
                     <tr id="row-Equipo3"><td><strong>Equipo 3</strong></td><td id="cell-Equipo3-juego1">0</td><td id="cell-Equipo3-juego2">0</td><td id="cell-Equipo3-juego3">0</td><td id="cell-Equipo3-juego4">0</td><td id="cell-Equipo3-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo3-puntualidad">0</td><td class="total-col" id="prom-Equipo3">0.0</td></tr>
@@ -96,17 +95,25 @@
     </div>
 
     <script>
-        // !!! REEMPLAZA ESTO CON TUS DATOS REALES DE SUPABASE !!!
+        // !!! MANTÉN LAS COMILLAS Y REEMPLAZA CON TUS DATOS DE SUPABASE !!!
         var SUPABASE_URL = "https://buodjwbjtedlhkcejyjf.supabase.co/rest/v1/";
         var SUPABASE_KEY = "sb_publishable_XPEEaBrGR-P16EOWo_prAw_iIs7qiaL";
         
         var intervalo = null;
         var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         var juegos = ["juego1", "juego2", "juego3", "juego4", "juego5", "puntualidad"];
+        var matrizPuntos = {};
+
+        function inicializarMatrizLimpia() {
+            equipos.forEach(eq => {
+                matrizPuntos[eq] = { id: eq, juego1: 0, juego2: 0, juego3: 0, juego4: 0, juego5: 0, puntualidad: 0 };
+            });
+        }
+        inicializarMatrizLimpia();
 
         function activarModoBase() {
             descargarDatos();
-            intervalo = setInterval(descargarDatos, 3000); // Sincroniza de internet cada 3 segundos
+            intervalo = setInterval(descargarDatos, 2500); 
         }
 
         function activarModoControl() {
@@ -120,6 +127,7 @@
         function dibujarTabla(datos) {
             datos.forEach(row => {
                 var eq = row.id;
+                if(matrizPuntos[eq]) { matrizPuntos[eq] = row; }
                 var suma = 0;
                 
                 juegos.forEach(ju => {
@@ -128,10 +136,4 @@
                     if(cell) cell.innerText = pts;
                     suma += parseInt(pts);
                 });
-
-                // PROMEDIO AUTOMÁTICO DE LOS 5 JUEGOS + PUNTUALIDAD
-                var promCell = document.getElementById("prom-" + eq);
-                if(promCell) promCell.innerText = (suma / 6).toFixed(1);
-            });
-        }
 
