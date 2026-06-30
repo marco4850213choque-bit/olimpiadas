@@ -8,7 +8,7 @@
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 650px; margin: 15px auto; display: none; }
         
-        /* Sistema de navegación por anclas a prueba de fallos de red */
+        /* Navegación por anclas nativas a prueba de fallos */
         #view-inicio { display: block; }
         :target { display: block !important; }
         :target ~ #view-inicio { display: none !important; }
@@ -24,8 +24,10 @@
         .btn-back { background-color: #6b7280; font-size: 13px; padding: 6px 12px; }
         select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; box-sizing: border-box; }
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
-        .status-box { font-size: 12px; color: #4f46e5; margin-top: 5px; font-weight: bold; }
+        .status-box { font-size: 12px; color: #10b981; margin-top: 5px; font-weight: bold; background: #dcfce7; padding: 6px; display: inline-block; border-radius: 4px; }
     </style>
+    <!-- Librería oficial de PubNub para transmisión en tiempo real inmune a bloqueos -->
+    <script src="https://pubnub.com"></script>
 </head>
 <body>
 
@@ -43,8 +45,7 @@
     <div id="view-base" class="card">
         <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back" onclick="detenerSincronizacion()">⬅️ Volver al Menú</a></div>
         <h2>Centro de Puntaje - Tabla General</h2>
-        <button class="btn-link btn-purple" style="width: auto; margin-bottom: 5px;" onclick="descargarDatosNube()">🔄 Sincronizar Marcadores Manual</button>
-        <div id="status-base" class="status-box">Sincronización automática activada (Cada 3s)</div>
+        <div id="status-base" class="status-box">Conectando al canal de antenas inalámbricas...</div>
         
         <div style="overflow-x: auto;">
             <table>
@@ -96,11 +97,12 @@
         <button class="btn-link" style="background:#6b7280; color:white; width:90%;" onclick="reiniciarTodo()">🔄 Reiniciar Todo a 0</button>
     </div>
 
-    <!-- PANTALLA 3: ESTACIONES DE JUEGO (CELULARES) -->
+    <!-- PANTALLA 3: ESTACIONES DE CELULARES -->
     <div id="view-estacion" class="card">
         <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back" onclick="detenerSincronizacion()">⬅️ Volver al Menú</a></div>
         <h2>Estación de Juego - Panel de Calificación</h2>
-        
+        <div id="status-control" class="status-box" style="background:#dbeafe; color:#1e40af;">Conectando estación al sistema...</div>
+        <br>
         <label><strong>1. Elige el Juego que cuidas hoy:</strong></label>
         <select id="ins-juego">
             <option value="Juego 1">Juego 1</option>
@@ -129,15 +131,11 @@
     </div>
 
     <script>
-        // Servidor HTTP corporativo global inmune a bloqueos CORS de GitHub Pages
-        var subdominioUnique = window.location.hostname.replace(/\./g, '_') || "usuario_local";
-        var urlNube = "https://typicode.com"; 
-        var salaIdentificador = "torneodatos_" + subdominioUnique;
+        // Canal de sincronización único generado a partir de tu enlace de GitHub
+        var subdominioClave = window.location.hostname.replace(/\./g, '_') || "servidor_torneo_local";
+        var nombreCanalInternet = "canal_torneo_global_" + subdominioClave;
 
-        var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
-        var juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
-        var matrizPuntos = {};
-        var intervaloTiempo = null;
-
-        function inicializarMatrizLimpia() {
-            for (var i = 0; i < equipos.length; i++) {
+        // Servidores corporativos abiertos de desarrollo libre (Inmunes a bloqueos CORS de GitHub)
+        var pubnub = new PubNub({
+            publishKey: 'pub-c-4993ec97-0f73-455b-b9fb-1c9f80164ce6',
+            subscribeKey: 'sub-c-69fca759-25f0-4660-84a1-db6efc3b5bb2',
