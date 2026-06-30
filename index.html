@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo 5 Juegos + Puntualidad</title>
+    <title>Torneo - Centro de Puntaje por IP</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 650px; margin: 15px auto; display: none; }
         
-        /* Navegación por anclas nativas a prueba de fallos */
+        /* Navegación nativa por anclas para evitar congelamientos */
         #view-inicio { display: block; }
         :target { display: block !important; }
         :target ~ #view-inicio { display: none !important; }
@@ -24,10 +24,8 @@
         .btn-back { background-color: #6b7280; font-size: 13px; padding: 6px 12px; }
         select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; box-sizing: border-box; }
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
-        .status-box { font-size: 12px; color: #10b981; margin-top: 5px; font-weight: bold; background: #dcfce7; padding: 6px; display: inline-block; border-radius: 4px; }
+        .ip-box { font-size: 13px; color: #1e40af; background: #eff6ff; padding: 10px; border-radius: 6px; border: 1px solid #bfdbfe; font-weight: bold; margin-bottom: 15px; text-align: left; }
     </style>
-    <!-- Librería oficial de PubNub para transmisión en tiempo real inmune a bloqueos -->
-    <script src="https://pubnub.com"></script>
 </head>
 <body>
 
@@ -45,7 +43,11 @@
     <div id="view-base" class="card">
         <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back" onclick="detenerSincronizacion()">⬅️ Volver al Menú</a></div>
         <h2>Centro de Puntaje - Tabla General</h2>
-        <div id="status-base" class="status-box">Conectando al canal de antenas inalámbricas...</div>
+        
+        <div class="ip-box" id="info-ip-computadora">
+            📡 CONEXIÓN POR DIRECCIÓN IP EN DIRECTO:<br>
+            Los celulares deben ingresar a la red usando la dirección IP de esta computadora. Asegúrate de que todos los dispositivos compartan el mismo Wi-Fi.
+        </div>
         
         <div style="overflow-x: auto;">
             <table>
@@ -101,8 +103,7 @@
     <div id="view-estacion" class="card">
         <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back" onclick="detenerSincronizacion()">⬅️ Volver al Menú</a></div>
         <h2>Estación de Juego - Panel de Calificación</h2>
-        <div id="status-control" class="status-box" style="background:#dbeafe; color:#1e40af;">Conectando estación al sistema...</div>
-        <br>
+        
         <label><strong>1. Elige el Juego que cuidas hoy:</strong></label>
         <select id="ins-juego">
             <option value="Juego 1">Juego 1</option>
@@ -131,11 +132,16 @@
     </div>
 
     <script>
-        // Canal de sincronización único generado a partir de tu enlace de GitHub
-        var subdominioClave = window.location.hostname.replace(/\./g, '_') || "servidor_torneo_local";
-        var nombreCanalInternet = "canal_torneo_global_" + subdominioClave;
+        var canalLocalNetwork = new BroadcastChannel('canal_torneo_local_ip_fijo');
+        var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
+        var juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
+        var matrizPuntos = {};
+        var cicloRefresco = null;
+        var salaClaveMemoria = "torneo_local_memoria_compartida";
 
-        // Servidores corporativos abiertos de desarrollo libre (Inmunes a bloqueos CORS de GitHub)
-        var pubnub = new PubNub({
-            publishKey: 'pub-c-4993ec97-0f73-455b-b9fb-1c9f80164ce6',
-            subscribeKey: 'sub-c-69fca759-25f0-4660-84a1-db6efc3b5bb2',
+        function inicializarMatrizLimpia() {
+            for (var i = 0; i < equipos.length; i++) {
+                matrizPuntos[equipos[i]] = { "Puntualidad": 0, "Juego 1": 0, "Juego 2": 0, "Juego 3": 0, "Juego 4": 0, "Juego 5": 0 };
+            }
+        }
+
