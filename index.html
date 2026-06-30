@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo - Centro de Puntaje</title>
+    <title>Sistema de Torneo - Centro de Puntaje</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 650px; margin: 15px auto; display: none; }
         
-        /* Navegación por anclas nativa a prueba de fallos */
+        /* Navegación por anclas nativa a prueba de fallos de red */
         #view-inicio { display: block; }
         :target { display: block !important; }
         :target ~ #view-inicio { display: none !important; }
@@ -17,7 +17,8 @@
         th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: center; }
         th { background-color: #4f46e5; color: white; }
         tr:nth-child(even) { background-color: #f9fafb; }
-        .total-col { font-weight: bold; color: #10b981; background-color: #f0fdf4; }
+        .total-col { font-weight: bold; color: #10b981; background-color: #f0fdf4; font-size: 14px; }
+        
         .btn-link { display: inline-block; text-decoration: none; font-size: 15px; padding: 12px 20px; margin: 8px; border-radius: 6px; font-weight: bold; color: white; text-align: center; border: none; cursor: pointer; }
         .btn-purple { background-color: #4f46e5; width: 85%; }
         .btn-green { background-color: #10b981; width: 85%; }
@@ -32,17 +33,17 @@
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos + Puntualidad</h2>
         <p>Selecciona el rol de este dispositivo:</p>
-        <a href="#view-base" class="btn-link btn-purple" onclick="descargarDatosBase()">🖥️ Centro de Puntaje (Computadora)</a>
+        <a href="#view-base" class="btn-link btn-purple" onclick="activarModoBase()">🖥️ Centro de Puntaje (Computadora)</a>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <p><strong>Modo Celular Estación:</strong></p>
-        <a href="#view-control" class="btn-link btn-green">Ingresar como Estación de Juego ✅</a>
+        <p><strong>Modo Celular Estación de Juego:</strong></p>
+        <a href="#view-estacion" class="btn-link btn-green">🎮 Ingresar como Estación de Juego</a>
     </div>
 
     <!-- PANTALLA 2: COMPUTADORA BASE (CENTRO DE PUNTAJE) -->
     <div id="view-base" class="card">
-        <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back">⬅️ Volver al Menú</a></div>
+        <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back" onclick="detenerSincronizacion()">⬅️ Volver al Menú</a></div>
         <h2>Centro de Puntaje - Tabla General</h2>
-        <button class="btn-link btn-purple" style="width: auto; margin-bottom: 15px;" onclick="descargarDatosBase()">🔄 Recargar Tabla en Vivo</button>
+        <button class="btn-link btn-purple" style="width: auto; margin-bottom: 15px;" onclick="descargarDatosNube()">🔄 Sincronizar Marcadores en Vivo</button>
         
         <div style="overflow-x: auto;">
             <table>
@@ -59,14 +60,27 @@
                     </tr>
                 </thead>
                 <tbody id="tabla-cuerpo">
-                    <!-- Se llena de forma automática por internet -->
+                    <!-- Las filas se dibujan estáticamente para asegurar que no se queden en blanco -->
+                    <tr id="row-Eq1"><td><strong>Equipo 1</strong></td><td id="c-Eq1-J1">0</td><td id="c-Eq1-J2">0</td><td id="c-Eq1-J3">0</td><td id="c-Eq1-J4">0</td><td id="c-Eq1-J5">0</td><td style="background-color: #fef3c7;" id="c-Eq1-Pt">0</td><td class="total-col" id="p-Eq1">0.0</td></tr>
+                    <tr id="row-Eq2"><td><strong>Equipo 2</strong></td><td id="c-Eq2-J1">0</td><td id="c-Eq2-J2">0</td><td id="c-Eq2-J3">0</td><td id="c-Eq2-J4">0</td><td id="c-Eq2-J5">0</td><td style="background-color: #fef3c7;" id="c-Eq2-Pt">0</td><td class="total-col" id="p-Eq2">0.0</td></tr>
+                    <tr id="row-Eq3"><td><strong>Equipo 3</strong></td><td id="c-Eq3-J1">0</td><td id="c-Eq3-J2">0</td><td id="c-Eq3-J3">0</td><td id="c-Eq3-J4">0</td><td id="c-Eq3-J5">0</td><td style="background-color: #fef3c7;" id="c-Eq3-Pt">0</td><td class="total-col" id="p-Eq3">0.0</td></tr>
+                    <tr id="row-Eq4"><td><strong>Equipo 4</strong></td><td id="c-Eq4-J1">0</td><td id="c-Eq4-J2">0</td><td id="c-Eq4-J3">0</td><td id="c-Eq4-J4">0</td><td id="c-Eq4-J5">0</td><td style="background-color: #fef3c7;" id="c-Eq4-Pt">0</td><td class="total-col" id="p-Eq4">0.0</td></tr>
+                    <tr id="row-Eq5"><td><strong>Equipo 5</strong></td><td id="c-Eq5-J1">0</td><td id="c-Eq5-J2">0</td><td id="c-Eq5-J3">0</td><td id="c-Eq5-J4">0</td><td id="c-Eq5-J5">0</td><td style="background-color: #fef3c7;" id="c-Eq5-Pt">0</td><td class="total-col" id="p-Eq5">0.0</td></tr>
+                    <tr id="row-Eq6"><td><strong>Equipo 6</strong></td><td id="c-Eq6-J1">0</td><td id="c-Eq6-J2">0</td><td id="c-Eq6-J3">0</td><td id="c-Eq6-J4">0</td><td id="c-Eq6-J5">0</td><td style="background-color: #fef3c7;" id="c-Eq6-Pt">0</td><td class="total-col" id="p-Eq6">0.0</td></tr>
                 </tbody>
             </table>
         </div>
 
         <div class="admin-box">
             <h4>✏️ Modificar Puntos / Puntualidad desde la Base</h4>
-            <select id="select-base-equipo"></select>
+            <select id="select-base-equipo">
+                <option value="Equipo 1">Equipo 1</option>
+                <option value="Equipo 2">Equipo 2</option>
+                <option value="Equipo 3">Equipo 3</option>
+                <option value="Equipo 4">Equipo 4</option>
+                <option value="Equipo 5">Equipo 5</option>
+                <option value="Equipo 6">Equipo 6</option>
+            </select>
             <select id="select-base-juego">
                 <option value="Juego 1">Juego 1</option>
                 <option value="Juego 2">Juego 2</option>
@@ -76,18 +90,18 @@
                 <option value="Puntualidad">Casilla Extra: Puntualidad</option>
             </select>
             <input type="number" id="input-base-puntos" min="1" max="100" placeholder="Puntos (1 a 100)">
-            <button class="btn-send btn-link" style="background-color: #d97706; width: 90%;" onclick="actualizarPuntosDesdeBase()">Actualizar Puntuación Manual 📤</button>
+            <button class="btn-link" style="background-color: #d97706; width: 90%; margin: 10px 0;" onclick="actualizarPuntosDesdeBase()">Actualizar Puntuación Manual 📤</button>
         </div>
         <br>
         <button class="btn-link" style="background:#6b7280; color:white; width:90%;" onclick="reiniciarTodo()">🔄 Reiniciar Todo a 0</button>
     </div>
 
-    <!-- PANTALLA 3: ESTACIONES DE CELULARES (MISMOS CAMPOS DIRECTOS) -->
-    <div id="view-control" class="card">
+    <!-- PANTALLA 3: ESTACIONES DE CELULARES -->
+    <div id="view-estacion" class="card">
         <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back">⬅️ Volver al Menú</a></div>
-        <h2>Estación de Juego</h2>
+        <h2>Estación de Juego - Panel de Calificación</h2>
         
-        <label>1. Selecciona tu Juego:</label>
+        <label><strong>1. Elige el Juego que cuidas hoy:</strong></label>
         <select id="ins-juego">
             <option value="Juego 1">Juego 1</option>
             <option value="Juego 2">Juego 2</option>
@@ -97,101 +111,49 @@
             <option value="Puntualidad">Casilla Extra: Puntualidad</option>
         </select>
 
-        <label style="display:block; margin-top:15px;">2. Selecciona el Equipo Actual:</label>
-        <select id="ins-equipo"></select>
+        <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 15px 0;">
+        <label><strong>2. Selecciona el Equipo:</strong></label>
+        <select id="ins-equipo">
+            <option value="Equipo 1">Equipo 1</option>
+            <option value="Equipo 2">Equipo 2</option>
+            <option value="Equipo 3">Equipo 3</option>
+            <option value="Equipo 4">Equipo 4</option>
+            <option value="Equipo 5">Equipo 5</option>
+            <option value="Equipo 6">Equipo 6</option>
+        </select>
 
-        <label style="display:block; margin-top:15px;">3. Digita los Puntos (1 a 100):</label>
-        <input type="number" id="ins-puntos" min="1" max="100" placeholder="Ej: 85">
-        
+        <label style="display:block; margin-top:15px;"><strong>3. Digita los Puntos (1 al 100):</strong></label>
+        <input type="number" id="ins-puntos" min="1" max="100" placeholder="Escribe nota del 1 al 100">
+
         <button class="btn-link btn-green" onclick="enviarPuntosDesdeInterfaz()">Enviar Puntuación a la Base 📤</button>
     </div>
 
     <script>
-        // Servidor en la nube público pre-configurado de acceso inmediato
-        var binUrl = "https://jsonbin.io";
-        var apiKey = "$2a$10$WkGv.4KqY13u9YVvHe2JDeNl1/wS0WfDfeGv4eZf6U2X9EwHq2z6G"; // Llave pública distribuida
+        // Token dinámico automático basado en tu propia URL de GitHub Pages
+        var subdominio = window.location.hostname.split('.')[0] || "anonimo";
+        var nombreNamespace = "torneo_6equipos_" + subdominio;
+        var urlApiBase = "https://countapi.xyz"; // API nativa distribuida en la nube sin restricciones
 
-        var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
-        var juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
-        var matrizPuntos = {};
+        var mapaEquipos = {"Equipo 1": "Eq1", "Equipo 2": "Eq2", "Equipo 3": "Eq3", "Equipo 4": "Eq4", "Equipo 5": "Eq5", "Equipo 6": "Eq6"};
+        var mapaJuegos = {"Juego 1": "J1", "Juego 2": "J2", "Juego 3": "J3", "Juego 4": "J4", "Juego 5": "J5", "Puntualidad": "Pt"};
+        
+        var listaEquiposLogica = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
+        var listaJuegosLogica = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5", "Puntualidad"];
+        
+        var matrizLocal = {};
+        var cicloSincronizacion = null;
 
-        // Inicializar estructura limpia local
-        for (var i = 0; i < equipos.length; i++) {
-            matrizPuntos[equipos[i]] = { "Puntualidad": 0 };
-            for (var j = 0; j < juegos.length; j++) {
-                matrizPuntos[equipos[i]][juegos[j]] = 0;
-            }
+        function inicializarMatrizVacia() {
+            listaEquiposLogica.forEach(function(eq) {
+                matrizLocal[eq] = {};
+                listaJuegosLogica.forEach(function(ju) { matrizLocal[eq][ju] = 0; });
+            });
+        }
+        inicializarMatrizVacia();
+
+        function activarModoBase() {
+            descargarDatosNube();
+            // Escucha actualizaciones en vivo cada 3 segundos de fondo de forma nativa
+            cicloSincronizacion = setInterval(descargarDatosNube, 3000);
         }
 
-        // Llenar selectores al iniciar de forma invisible
-        var selectBaseEq = document.getElementById('select-base-equipo');
-        var selectControlEq = document.getElementById('ins-equipo');
-        for (var i = 0; i < equipos.length; i++) {
-            var opt = '<option value="' + equipos[i] + '">' + equipos[i] + '</option>';
-            if(selectBaseEq) selectBaseEq.innerHTML += opt;
-            if(selectControlEq) selectControlEq.innerHTML += opt;
-        }
-
-        function descargarDatosBase() {
-            fetch(binUrl + "/latest", { headers: { "X-Master-Key": apiKey } })
-            .then(function(res) { return res.json(); })
-            .then(function(json) {
-                if (json.record) {
-                    matrizPuntos = json.record;
-                    dibujarTabla();
-                }
-            }).catch(function(e) {});
-        }
-
-        function dibujarTabla() {
-            var cuerpo = document.getElementById('tabla-cuerpo');
-            if(!cuerpo) return;
-            cuerpo.innerHTML = '';
-            
-            for (var i = 0; i < equipos.length; i++) {
-                var eq = equipos[i];
-                var fila = '<tr><td><strong>' + eq + '</strong></td>';
-                var sumaTotal = 0;
-                
-                for (var j = 0; j < juegos.length; j++) {
-                    var pts = (matrizPuntos[eq] && matrizPuntos[eq][juegos[j]]) ? matrizPuntos[eq][juegos[j]] : 0;
-                    fila += '<td>' + pts + '</td>';
-                    sumaTotal += pts;
-                }
-                
-                var puntualidadPts = (matrizPuntos[eq] && matrizPuntos[eq]["Puntualidad"]) ? matrizPuntos[eq]["Puntualidad"] : 0;
-                fila += '<td style="background-color: #fef3c7; font-weight:bold;">' + puntualidadPts + '</td>';
-                sumaTotal += puntualidadPts;
-
-                var promedioFinal = (sumaTotal / 6).toFixed(1);
-                fila += '<td class="total-col">' + promedioFinal + '</td></tr>';
-                cuerpo.innerHTML += fila;
-            }
-        }
-
-        function enviarPuntosDesdeInterfaz() {
-            var juego = document.getElementById('ins-juego').value;
-            var equipo = document.getElementById('ins-equipo').value;
-            var puntos = parseInt(document.getElementById('ins-puntos').value);
-
-            if(isNaN(puntos) || puntos < 1 || puntos > 100) {
-                alert("Introduce una puntuación válida del 1 al 100.");
-                return;
-            }
-
-            // Descarga primero el estado actual de la nube para no sobreescribir otras estaciones
-            fetch(binUrl + "/latest", { headers: { "X-Master-Key": apiKey } })
-            .then(function(res) { return res.json(); })
-            .then(function(json) {
-                if (json.record) { matrizPuntos = json.record; }
-                
-                // Guarda la nota digitada por teclado
-                matrizPuntos[equipo][juego] = puntos;
-
-                // Sube la actualización instantánea a internet
-                fetch(binUrl, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', "X-Master-Key": apiKey },
-                    body: JSON.stringify(matrizPuntos)
-                }).then(function() {
-                    document.getElementById('ins-puntos').value = '';
