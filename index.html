@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torneo - Centro de Puntaje Global</title>
+    <title>Torneo 5 Juegos + Puntualidad</title>
     <style>
         body { font-family: system-ui, sans-serif; text-align: center; background-color: #f3f4f6; margin: 0; padding: 15px; color: #1f2937; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 650px; margin: 15px auto; display: none; }
+        
+        /* Navegación por anclas nativa a prueba de fallos de red */
         #view-inicio { display: block; }
         :target { display: block !important; }
         :target ~ #view-inicio { display: none !important; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 13px; }
         th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: center; }
         th { background-color: #4f46e5; color: white; }
@@ -21,55 +24,68 @@
         .btn-back { background-color: #6b7280; font-size: 13px; padding: 6px 12px; }
         select, input { font-size: 16px; padding: 10px; width: 85%; margin: 10px 0; border-radius: 6px; border: 1px solid #d1d5db; text-align: center; box-sizing: border-box; }
         .admin-box { background: #fef3c7; border: 1px dashed #f59e0b; padding: 15px; border-radius: 8px; margin-top: 20px; }
-        .status { font-size: 12px; color: #4f46e5; font-weight: bold; margin-top: 5px; }
+        .code-display { font-family: monospace; font-size: 14px; background: #e0e7ff; color: #3730a3; padding: 10px; border-radius: 6px; word-break: break-all; margin: 10px 0; font-weight: bold; border: 1px solid #c7d2fe; }
     </style>
 </head>
 <body>
 
-    <!-- PANTALLA 1: MENU SELECCION -->
+    <!-- PANTALLA 1: MENU SELECCION INICIAL -->
     <div id="view-inicio" class="card">
         <h2>Torneo 5 Juegos + Puntualidad</h2>
         <p>Selecciona el rol de este dispositivo:</p>
         <a href="#view-base" class="btn-link btn-purple" onclick="activarModoBase()">🖥️ Centro de Puntaje (Computadora)</a>
         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <p><strong>Modo Celular Estación:</strong></p>
+        <p><strong>Modo Celular Estación de Juego:</strong></p>
         <a href="#view-estacion" class="btn-link btn-green" onclick="activarModoControl()">🎮 Ingresar como Estación de Juego</a>
     </div>
 
     <!-- PANTALLA 2: COMPUTADORA BASE (CENTRO DE PUNTAJE) -->
     <div id="view-base" class="card">
-        <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back" onclick="detenerSincronizacion()">⬅️ Volver</a></div>
+        <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back">⬅️ Volver al Menú</a></div>
         <h2>Centro de Puntaje - Tabla General</h2>
-        <div class="status">Sincronización en la nube nativa Google activa ✅</div>
         
         <div style="overflow-x: auto;">
             <table>
                 <thead>
                     <tr>
-                        <th>Equipo</th><th>Juego 1</th><th>Juego 2</th><th>Juego 3</th><th>Juego 4</th><th>Juego 5</th><th style="background-color: #d97706; color:white;">Puntualidad</th><th>Promedio Final</th>
+                        <th>Equipo</th>
+                        <th>Juego 1</th>
+                        <th>Juego 2</th>
+                        <th>Juego 3</th>
+                        <th>Juego 4</th>
+                        <th>Juego 5</th>
+                        <th style="background-color: #d97706; color:white;">Puntualidad</th>
+                        <th>Promedio Final</th>
                     </tr>
                 </thead>
                 <tbody id="tabla-cuerpo">
-                    <tr id="row-Equipo1"><td><strong>Equipo 1</strong></td><td id="cell-Equipo1-juego1">0</td><td id="cell-Equipo1-juego2">0</td><td id="cell-Equipo1-juego3">0</td><td id="cell-Equipo1-juego4">0</td><td id="cell-Equipo1-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo1-puntualidad">0</td><td class="total-col" id="prom-Equipo1">0.0</td></tr>
-                    <tr id="row-Equipo2"><td><strong>Equipo 2</strong></td><td id="cell-Equipo2-juego1">0</td><td id="cell-Equipo2-juego2">0</td><td id="cell-Equipo2-juego3">0</td><td id="cell-Equipo2-juego4">0</td><td id="cell-Equipo2-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo2-puntualidad">0</td><td class="total-col" id="prom-Equipo2">0.0</td></tr>
-                    <tr id="row-Equipo3"><td><strong>Equipo 3</strong></td><td id="cell-Equipo3-juego1">0</td><td id="cell-Equipo3-juego2">0</td><td id="cell-Equipo3-juego3">0</td><td id="cell-Equipo3-juego4">0</td><td id="cell-Equipo3-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo3-puntualidad">0</td><td class="total-col" id="prom-Equipo3">0.0</td></tr>
-                    <tr id="row-Equipo4"><td><strong>Equipo 4</strong></td><td id="cell-Equipo4-juego1">0</td><td id="cell-Equipo4-juego2">0</td><td id="cell-Equipo4-juego3">0</td><td id="cell-Equipo4-juego4">0</td><td id="cell-Equipo4-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo4-puntualidad">0</td><td class="total-col" id="prom-Equipo4">0.0</td></tr>
-                    <tr id="row-Equipo5"><td><strong>Equipo 5</strong></td><td id="cell-Equipo5-juego1">0</td><td id="cell-Equipo5-juego2">0</td><td id="cell-Equipo5-juego3">0</td><td id="cell-Equipo5-juego4">0</td><td id="cell-Equipo5-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo5-puntualidad">0</td><td class="total-col" id="prom-Equipo5">0.0</td></tr>
-                    <tr id="row-Equipo6"><td><strong>Equipo 6</strong></td><td id="cell-Equipo6-juego1">0</td><td id="cell-Equipo6-juego2">0</td><td id="cell-Equipo6-juego3">0</td><td id="cell-Equipo6-juego4">0</td><td id="cell-Equipo6-juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo6-puntualidad">0</td><td class="total-col" id="prom-Equipo6">0.0</td></tr>
+                    <!-- Se dibuja estáticamente en el navegador -->
+                    <tr id="row-Equipo1"><td><strong>Equipo 1</strong></td><td id="cell-Equipo1-Juego1">0</td><td id="cell-Equipo1-Juego2">0</td><td id="cell-Equipo1-Juego3">0</td><td id="cell-Equipo1-Juego4">0</td><td id="cell-Equipo1-Juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo1-Puntualidad">0</td><td class="total-col" id="prom-Equipo1">0.0</td></tr>
+                    <tr id="row-Equipo2"><td><strong>Equipo 2</strong></td><td id="cell-Equipo2-Juego1">0</td><td id="cell-Equipo2-Juego2">0</td><td id="cell-Equipo2-Juego3">0</td><td id="cell-Equipo2-Juego4">0</td><td id="cell-Equipo2-Juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo2-Puntualidad">0</td><td class="total-col" id="prom-Equipo2">0.0</td></tr>
+                    <tr id="row-Equipo3"><td><strong>Equipo 3</strong></td><td id="cell-Equipo3-Juego1">0</td><td id="cell-Equipo3-Juego2">0</td><td id="cell-Equipo3-Juego3">0</td><td id="cell-Equipo3-Juego4">0</td><td id="cell-Equipo3-Juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo3-Puntualidad">0</td><td class="total-col" id="prom-Equipo3">0.0</td></tr>
+                    <tr id="row-Equipo4"><td><strong>Equipo 4</strong></td><td id="cell-Equipo4-Juego1">0</td><td id="cell-Equipo4-Juego2">0</td><td id="cell-Equipo4-Juego3">0</td><td id="cell-Equipo4-Juego4">0</td><td id="cell-Equipo4-Juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo4-Puntualidad">0</td><td class="total-col" id="prom-Equipo4">0.0</td></tr>
+                    <tr id="row-Equipo5"><td><strong>Equipo 5</strong></td><td id="cell-Equipo5-Juego1">0</td><td id="cell-Equipo5-Juego2">0</td><td id="cell-Equipo5-Juego3">0</td><td id="cell-Equipo5-Juego4">0</td><td id="cell-Equipo5-Juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo5-Puntualidad">0</td><td class="total-col" id="prom-Equipo5">0.0</td></tr>
+                    <tr id="row-Equipo6"><td><strong>Equipo 6</strong></td><td id="cell-Equipo6-Juego1">0</td><td id="cell-Equipo6-Juego2">0</td><td id="cell-Equipo6-Juego3">0</td><td id="cell-Equipo6-Juego4">0</td><td id="cell-Equipo6-Juego5">0</td><td style="background-color: #fef3c7;" id="cell-Equipo6-Puntualidad">0</td><td class="total-col" id="prom-Equipo6">0.0</td></tr>
                 </tbody>
             </table>
         </div>
 
+        <div class="admin-box" style="background:#e0e7ff; border-color:#4f46e5;">
+            <h4>📥 Pegar Código de Celular Estación</h4>
+            <input type="text" id="input-importar-codigo" placeholder="Pega el código de texto recibido del celular">
+            <button class="btn-link" style="background-color: #4f46e5; width: 90%; margin: 10px 0;" onclick="importarDatosEstacion()">Procesar y Sincronizar Puntos 💾</button>
+        </div>
+
         <div class="admin-box">
-            <h4>✏️ Modificar desde la Base Principal</h4>
+            <h4>✏️ Modificar Puntos / Puntualidad desde la Base</h4>
             <select id="select-base-equipo">
                 <option value="Equipo 1">Equipo 1</option><option value="Equipo 2">Equipo 2</option><option value="Equipo 3">Equipo 3</option><option value="Equipo 4">Equipo 4</option><option value="Equipo 5">Equipo 5</option><option value="Equipo 6">Equipo 6</option>
             </select>
             <select id="select-base-juego">
-                <option value="juego1">Juego 1</option><option value="juego2">Juego 2</option><option value="juego3">Juego 3</option><option value="juego4">Juego 4</option><option value="juego5">Juego 5</option><option value="puntualidad">Puntualidad</option>
+                <option value="Juego 1">Juego 1</option><option value="Juego 2">Juego 2</option><option value="Juego 3">Juego 3</option><option value="Juego 4">Juego 4</option><option value="Juego 5">Juego 5</option><option value="Puntualidad">Casilla Extra: Puntualidad</option>
             </select>
             <input type="number" id="input-base-puntos" min="1" max="100" placeholder="Puntos (1 a 100)">
-            <button class="btn-link" style="background-color: #d97706; width: 90%; margin: 10px 0;" onclick="actualizarDesdeBase()">Actualizar Puntuación Manual 📤</button>
+            <button class="btn-link" style="background-color: #d97706; width: 90%; margin: 10px 0;" onclick="actualizarPuntosDesdeBase()">Actualizar Puntuación Manual 📤</button>
         </div>
         <br>
         <button class="btn-link" style="background:#6b7280; color:white; width:90%;" onclick="reiniciarTodo()">🔄 Reiniciar Todo a 0</button>
@@ -77,61 +93,36 @@
 
     <!-- PANTALLA 3: ESTACIONES DE CELULARES -->
     <div id="view-estacion" class="card">
-        <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back" onclick="detenerSincronizacion()">⬅️ Volver</a></div>
+        <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back">⬅️ Volver al Menú</a></div>
         <h2>Estación de Juego - Panel de Calificación</h2>
         
-        <label><strong>1. Elige el Juego de esta Estación:</strong></label>
-        <select id="ins-juego">
-            <option value="juego1">Juego 1</option><option value="juego2">Juego 2</option><option value="juego3">Juego 3</option><option value="juego4">Juego 4</option><option value="juego5">Juego 5</option><option value="puntualidad">Puntualidad</option>
+        <label><strong>1. Elige el Juego que cuidas hoy:</strong></label>
+        <select id="ins-juego" onchange="generarCodigoExportacion()">
+            <option value="Juego 1">Juego 1</option><option value="Juego 2">Juego 2</option><option value="Juego 3">Juego 3</option><option value="Juego 4">Juego 4</option><option value="Juego 5">Juego 5</option><option value="Puntualidad">Casilla Extra: Puntualidad</option>
         </select>
-        <label style="display:block; margin-top:15px;"><strong>2. Selecciona el Equipo Actual:</strong></label>
+
+        <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 15px 0;">
+        <label><strong>2. Selecciona el Equipo Actual:</strong></label>
         <select id="ins-equipo">
             <option value="Equipo 1">Equipo 1</option><option value="Equipo 2">Equipo 2</option><option value="Equipo 3">Equipo 3</option><option value="Equipo 4">Equipo 4</option><option value="Equipo 5">Equipo 5</option><option value="Equipo 6">Equipo 6</option>
         </select>
+
         <label style="display:block; margin-top:15px;"><strong>3. Digita los Puntos (1 al 100):</strong></label>
-        <input type="number" id="ins-puntos" min="1" max="100" placeholder="Nota del 1 al 100">
-        <button class="btn-link btn-green" onclick="enviarPuntos()">Enviar Puntuación a la Base 📤</button>
+        <input type="number" id="ins-puntos" min="1" max="100" placeholder="Escribe nota del 1 al 100">
+
+        <button class="btn-link btn-green" onclick="enviarPuntosDesdeInterfaz()">Guardar Nota en Celular 📥</button>
+        
+        <br><br>
+        <div class="admin-box" style="background:#f3f4f6; border-color:#9ca3af;">
+            <h4>📋 Código de Sincronización para la PC:</h4>
+            <div id="output-codigo-celular" class="code-display">Cargando código...</div>
+            <p style="font-size:11px; color:#6b7280; margin:5px 0;">Cada vez que guardes una nota, copia este bloque de texto de arriba y envíaselo al encargado de la computadora por mensaje o WhatsApp.</p>
+        </div>
     </div>
 
     <script>
-        // !!! PEGA AQUÍ TU ENLACE DE FIREBASE REALTIME DATABASE ENTRE LAS COMILLAS !!!
-        var FIREBASE_URL = "https://olimpiadas-7beed-default-rtdb.firebaseio.com/";
-
-        var intervalo = null;
         var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
-        var juegos = ["juego1", "juego2", "juego3", "juego4", "juego5", "puntualidad"];
+        var juegos = ["Juego 1", "Juego 2", "Juego 3", "Juego 4", "Juego 5"];
         var matrizPuntos = {};
 
-        function activarModoBase() {
-            descargarDatos();
-            intervalo = setInterval(descargarDatos, 2000); // Descarga automática cada 2 segundos sin trabar botones
-        }
-
-        function activarModoControl() {
-            descargarDatos();
-        }
-
-        function detenerSincronizacion() {
-            if(intervalo) clearInterval(intervalo);
-        }
-
-        function dibujarTabla(datos) {
-            equipos.forEach(eq => {
-                var row = datos[eq] || { juego1: 0, juego2: 0, juego3: 0, juego4: 0, juego5: 0, puntualidad: 0 };
-                var suma = 0;
-                
-                juegos.forEach(ju => {
-                    var pts = row[ju] || 0;
-                    var cell = document.getElementById("cell-" + eq + "-" + ju);
-                    if(cell) cell.innerText = pts;
-                    suma += parseInt(pts);
-                });
-
-                var promCell = document.getElementById("prom-" + eq);
-                if(promCell) promCell.innerText = (suma / 6).toFixed(1);
-            });
-        }
-
-        // Petición de transmisión nativa directa por HTTP sin librerías externas bloqueantes
-        function descargarDatos() {
-            fetch(FIREBASE_URL + "/marcador.json")
+        function inicializarMatrizLimpia() {
