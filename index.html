@@ -40,8 +40,7 @@
     <div id="view-base" class="card">
         <div style="text-align: left;"><a href="#view-inicio" class="btn-link btn-back" onclick="detenerSincronizacion()">⬅️ Volver</a></div>
         <h2>Centro de Puntaje - Tabla General</h2>
-        <button class="btn-link btn-purple" style="width: auto; margin-bottom: 5px;" onclick="descargarDatos()">🔄 Forzar Sincronización Manual</button>
-        <div class="status">Sincronización en la nube nativa activa ✅</div>
+        <div class="status">Sincronización en la nube nativa Google activa ✅</div>
         
         <div style="overflow-x: auto;">
             <table>
@@ -95,25 +94,17 @@
     </div>
 
     <script>
-        // !!! MANTÉN LAS COMILLAS Y REEMPLAZA CON TUS DATOS DE SUPABASE !!!
-        var SUPABASE_URL = "https://buodjwbjtedlhkcejyjf.supabase.co/rest/v1/";
-        var SUPABASE_KEY = "sb_publishable_XPEEaBrGR-P16EOWo_prAw_iIs7qiaL";
-        
+        // !!! PEGA AQUÍ TU ENLACE DE FIREBASE REALTIME DATABASE ENTRE LAS COMILLAS !!!
+        var FIREBASE_URL = "https://olimpiadas-jedc-default-rtdb.firebaseio.com/";
+
         var intervalo = null;
         var equipos = ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"];
         var juegos = ["juego1", "juego2", "juego3", "juego4", "juego5", "puntualidad"];
         var matrizPuntos = {};
 
-        function inicializarMatrizLimpia() {
-            equipos.forEach(eq => {
-                matrizPuntos[eq] = { id: eq, juego1: 0, juego2: 0, juego3: 0, juego4: 0, juego5: 0, puntualidad: 0 };
-            });
-        }
-        inicializarMatrizLimpia();
-
         function activarModoBase() {
             descargarDatos();
-            intervalo = setInterval(descargarDatos, 2500); 
+            intervalo = setInterval(descargarDatos, 2000); // Descarga automática cada 2 segundos sin trabar botones
         }
 
         function activarModoControl() {
@@ -125,9 +116,8 @@
         }
 
         function dibujarTabla(datos) {
-            datos.forEach(row => {
-                var eq = row.id;
-                if(matrizPuntos[eq]) { matrizPuntos[eq] = row; }
+            equipos.forEach(eq => {
+                var row = datos[eq] || { juego1: 0, juego2: 0, juego3: 0, juego4: 0, juego5: 0, puntualidad: 0 };
                 var suma = 0;
                 
                 juegos.forEach(ju => {
@@ -137,3 +127,11 @@
                     suma += parseInt(pts);
                 });
 
+                var promCell = document.getElementById("prom-" + eq);
+                if(promCell) promCell.innerText = (suma / 6).toFixed(1);
+            });
+        }
+
+        // Petición de transmisión nativa directa por HTTP sin librerías externas bloqueantes
+        function descargarDatos() {
+            fetch(FIREBASE_URL + "/marcador.json")
